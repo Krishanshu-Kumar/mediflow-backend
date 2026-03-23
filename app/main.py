@@ -9,3 +9,14 @@ app = FastAPI(
 @app.get("/health")
 def health():
     return {"status": "ok", "service": "MediFlow"}
+
+@app.get("/patients/{patient_id}")
+def get_patient(patient_id: str):
+    return {
+        "patient_id": patient_id,
+        "first_name": "Jane",
+        "last_name": "Doe",
+        "date_of_birth": "1990-04-15",
+        "mrn": "MRN-00123",
+        "status": "active"
+    }
