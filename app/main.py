@@ -14,7 +14,7 @@ def health():
 def get_patient(patient_id: str):
     return {
         "patient_id": patient_id,
-        "first_name": "Jane",
+        "first_name": "Janet",
         "last_name": "Doe",
         "date_of_birth": "1990-04-15",
         "mrn": "MRN-00123",
