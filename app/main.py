@@ -18,5 +18,5 @@ def get_patient(patient_id: str):
         "last_name": "Doe",
         "date_of_birth": "1990-04-15",
         "mrn": "MRN-00123",
-        "status": "active"
+        "status": "Inactive"
     }
