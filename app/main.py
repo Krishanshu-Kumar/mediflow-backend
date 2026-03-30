@@ -21,13 +21,3 @@ def get_patient(patient_id: str):
         "status": "Inactive"
     }
 
-@app.get("/patients/{patient_id}")
-def get_patient(patient_id: str):
-    return {
-        "patient_id": patient_id,
-        "first_name": "Alvin",
-        "last_name": "Doe",
-        "date_of_birth": "1992-04-15",
-        "mrn": "MRN-00123",
-        "status": "Inactive"
-    }
