@@ -1,25 +1,29 @@
-from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
-from sqlalchemy.orm import DeclarativeBase
-
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker, declarative_base
 from app.core.config import settings
 
-engine = create_async_engine(
+# Create sync engine
+engine = create_engine(
     settings.DATABASE_URL,
-    echo=settings.DEBUG,      # don't log SQL in production
-    pool_pre_ping=True,       # auto-recover from dropped DB connections
-    pool_size=10,             # tune to your worker count
-    max_overflow=20,
+    echo=settings.DEBUG,
+    pool_pre_ping=True
 )
 
-AsyncSessionLocal = async_sessionmaker(
-    engine,
-    class_=AsyncSession,
-    expire_on_commit=False,
+# ✅ Sync session (this is what your CRUD expects)
+SessionLocal = sessionmaker(
+    autocommit=False,
+    autoflush=False,
+    bind=engine
 )
 
-class Base(DeclarativeBase):
-    pass
+# Base model
+Base = declarative_base()
 
-async def get_db() -> AsyncSession:
-    async with AsyncSessionLocal() as session:
-        yield session
+
+# Dependency for FastAPI
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()

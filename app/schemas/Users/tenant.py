@@ -11,8 +11,21 @@ class TenantBase(BaseModel):
     is_active: bool = True
     settings: Dict[str, Any] = {}
 
+
 class TenantCreate(TenantBase):
     pass
+
+
+class TenantUpdate(BaseModel):
+    """
+    All fields optional for partial updates
+    """
+    name: Optional[str] = Field(None, max_length=255)
+    slug: Optional[str] = Field(None, max_length=100)
+    plan_code: Optional[int] = None
+    is_active: Optional[bool] = None
+    settings: Optional[Dict[str, Any]] = None
+
 
 class TenantResponse(TenantBase):
     id: UUID
