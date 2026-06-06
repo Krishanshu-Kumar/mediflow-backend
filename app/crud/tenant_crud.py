@@ -1,28 +1,36 @@
 from sqlalchemy.orm import Session
-from app.models.Users.tenant import Tenant
-from app.schemas.Users.tenant import TenantCreate, TenantUpdate
+from app.crud.base import apply_updates, commit_refresh, schema_to_dict
+from app.models.Users.tenant_model import Tenant
+from app.schemas.Users.tenant_schema import TenantCreate, TenantUpdate
 from uuid import UUID
 from typing import Optional, List
+
+
+def _set_tenant_active_status(
+    db: Session,
+    tenant_id: UUID,
+    is_active: bool,
+) -> Optional[Tenant]:
+    db_tenant = get_tenant_by_id(db, tenant_id)
+
+    if not db_tenant:
+        return None
+
+    db_tenant.is_active = is_active
+    return commit_refresh(db, db_tenant)
 
 
 def create_tenant(db: Session, tenant: TenantCreate, created_by: Optional[UUID] = None) -> Tenant:
     """
     Create a new tenant in the database
     """
-    # Convert schema to dict and add created_by if provided
-    tenant_data = tenant.dict()
+    tenant_data = schema_to_dict(tenant)
     if created_by:
         tenant_data["created_by"] = created_by
-    
-    # Create the SQLAlchemy model instance
+
     db_tenant = Tenant(**tenant_data)
-    
-    # Add to session and commit
     db.add(db_tenant)
-    db.commit()
-    db.refresh(db_tenant)  # Refresh to get database-generated values (id, created_at, etc.)
-    
-    return db_tenant
+    return commit_refresh(db, db_tenant)
 
 
 def get_tenant_by_id(db: Session, tenant_id: UUID) -> Optional[Tenant]:
@@ -71,27 +79,18 @@ def update_tenant(
     """
     Update a tenant's information
     """
-    # Get the existing tenant
     db_tenant = get_tenant_by_id(db, tenant_id)
-    
+
     if not db_tenant:
         return None
-    
-    # Update only the fields that were provided (exclude_unset=True)
-    update_data = tenant_update.dict(exclude_unset=True)
-    
-    # Add updated_by if provided
+
+    update_data = schema_to_dict(tenant_update, exclude_unset=True)
+
     if updated_by:
         update_data["updated_by"] = updated_by
-    
-    # Apply updates
-    for key, value in update_data.items():
-        setattr(db_tenant, key, value)
-    
-    db.commit()
-    db.refresh(db_tenant)
-    
-    return db_tenant
+
+    apply_updates(db_tenant, update_data)
+    return commit_refresh(db, db_tenant)
 
 
 def deactivate_tenant(db: Session, tenant_id: UUID) -> Optional[Tenant]:
@@ -99,29 +98,11 @@ def deactivate_tenant(db: Session, tenant_id: UUID) -> Optional[Tenant]:
     Soft delete - mark tenant as inactive
     (We don't hard delete in production systems)
     """
-    db_tenant = get_tenant_by_id(db, tenant_id)
-    
-    if not db_tenant:
-        return None
-    
-    db_tenant.is_active = False
-    db.commit()
-    db.refresh(db_tenant)
-    
-    return db_tenant
+    return _set_tenant_active_status(db, tenant_id, False)
 
 
 def activate_tenant(db: Session, tenant_id: UUID) -> Optional[Tenant]:
     """
     Reactivate a previously deactivated tenant
     """
-    db_tenant = get_tenant_by_id(db, tenant_id)
-    
-    if not db_tenant:
-        return None
-    
-    db_tenant.is_active = True
-    db.commit()
-    db.refresh(db_tenant)
-    
-    return db_tenant
+    return _set_tenant_active_status(db, tenant_id, True)

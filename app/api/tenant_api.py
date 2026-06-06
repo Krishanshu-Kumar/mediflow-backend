@@ -4,8 +4,10 @@ from uuid import UUID
 from typing import List
 
 from app.core.database import get_db
-from app.crud import tenant as tenant_crud
-from app.schemas.Users.tenant import TenantCreate, TenantUpdate, TenantResponse
+from app.core import messages
+from app.core import status_codes
+from app.crud import tenant_crud
+from app.schemas.Users.tenant_schema import TenantCreate, TenantUpdate, TenantResponse
 
 router = APIRouter(prefix="/tenants", tags=["Tenants"])
 
@@ -34,5 +36,8 @@ def get_tenants(
 def get_tenant(tenant_id: UUID, db: Session = Depends(get_db)):
     tenant = tenant_crud.get_tenant_by_id(db, tenant_id)
     if not tenant:
-        raise HTTPException(status_code=404, detail="Tenant not found")
+        raise HTTPException(
+            status_code=status_codes.HTTP_404_NOT_FOUND,
+            detail=messages.TENANT_NOT_FOUND,
+        )
     return tenant

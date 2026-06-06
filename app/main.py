@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from app.api import tenant
+from app.api import tenant_api
 
 # ✅ First create app
 app = FastAPI(
@@ -9,7 +9,7 @@ app = FastAPI(
 )
 
 # ✅ Then include router
-app.include_router(tenant.router)
+app.include_router(tenant_api.router)
 
 
 @app.get("/health")

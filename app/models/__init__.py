@@ -1,3 +1,3 @@
-﻿from app.crud import tenant
+from app.crud import tenant_crud
 
-__all__ = ["tenant"]
+__all__ = ["tenant_crud"]
