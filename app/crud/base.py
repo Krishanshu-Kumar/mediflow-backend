@@ -1,5 +1,5 @@
 from typing import Any, TypeVar
-
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
 ModelType = TypeVar("ModelType")
@@ -12,9 +12,18 @@ def schema_to_dict(schema: Any, **kwargs: Any) -> dict:
 
 
 def commit_refresh(db: Session, model: ModelType) -> ModelType:
-    db.commit()
-    db.refresh(model)
-    return model
+    try:
+        db.commit()
+        db.refresh(model)
+        return model
+
+    except IntegrityError:
+        db.rollback()
+        raise
+
+    except SQLAlchemyError:
+        db.rollback()
+        raise
 
 
 def apply_updates(model: ModelType, updates: dict) -> None:

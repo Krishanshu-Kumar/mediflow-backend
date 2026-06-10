@@ -1,23 +1,28 @@
 from fastapi import FastAPI
-from app.api import tenant_api
 
-# ✅ First create app
+from app.api import tenant_api
+from app.api import role_api
+
 app = FastAPI(
     title="MediFlow API",
     description="Clinical Workflow Intelligence Platform",
     version="1.0.0"
 )
 
-# ✅ Then include router
+# Routers
 app.include_router(tenant_api.router)
+app.include_router(role_api.router)
 
 
-@app.get("/health")
+@app.get("/health", tags=["Health"])
 def health():
-    return {"status": "ok", "service": "MediFlow"}
+    return {
+        "status": "ok",
+        "service": "MediFlow"
+    }
 
 
-@app.get("/patients/{patient_id}")
+@app.get("/patients/{patient_id}", tags=["Demo"])
 def get_patient(patient_id: str):
     return {
         "patient_id": patient_id,
