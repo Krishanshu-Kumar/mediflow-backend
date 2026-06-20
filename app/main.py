@@ -1,4 +1,8 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
+from fastapi.exceptions import RequestValidationError
+from starlette.exceptions import HTTPException as StarletteHTTPException
+from sqlalchemy.exc import IntegrityError
 
 from app.api import tenant_api
 from app.api import role_api
@@ -9,9 +13,47 @@ app = FastAPI(
     version="1.0.0"
 )
 
+# Exception Handlers
+
+@app.exception_handler(IntegrityError)
+async def integrity_error_handler(request: Request, exc: IntegrityError):
+    # Try to extract the database driver's error message, or fallback to the full exception string
+    err_msg = str(exc.orig) if hasattr(exc, "orig") and exc.orig else str(exc)
+    return JSONResponse(
+        status_code=400,
+        content={"detail": f"Database integrity error: {err_msg}"}
+    )
+
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    # If the exception is a standard HTTPException, preserve its status code and message
+    if isinstance(exc, StarletteHTTPException):
+        return JSONResponse(
+            status_code=exc.status_code,
+            content={"detail": exc.detail}
+        )
+    
+    # If the exception is a validation error, preserve its 422 status code and detail list
+    if isinstance(exc, RequestValidationError):
+        return JSONResponse(
+            status_code=422,
+            content={"detail": exc.errors()}
+        )
+    
+    # For any other unhandled server error, return a descriptive 500 error
+    return JSONResponse(
+        status_code=500,
+        content={
+            "detail": f"Internal server error ({exc.__class__.__name__}): {str(exc)}"
+        }
+    )
+
+
 # Routers
 app.include_router(tenant_api.router)
 app.include_router(role_api.router)
+
 
 
 @app.get("/health", tags=["Health"])
