@@ -18,7 +18,7 @@ class Role(Base):
     display_name = Column(String(100), nullable=False)
 
     is_system_role = Column(Boolean, default=False)
-    is_active = Column(Boolean, default=True)
+    is_active: bool = Column(Boolean, default=True)
 
     # Temporary: keeping independent while bootstrapping core models
     created_by = Column(UUID(as_uuid=True), nullable=True)

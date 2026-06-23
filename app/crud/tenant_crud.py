@@ -65,7 +65,7 @@ def get_tenants(
     query = db.query(Tenant)
     
     if active_only:
-        query = query.filter(Tenant.is_active == True)
+        query = query.filter(Tenant.is_active)
     
     return query.offset(skip).limit(limit).all()
 

@@ -76,7 +76,7 @@ def get_roles(
     query = db.query(Role)
 
     if active_only:
-        query = query.filter(Role.is_active == True)
+        query = query.filter(Role.is_active)
 
     return query.offset(skip).limit(limit).all()
 

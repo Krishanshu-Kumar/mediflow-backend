@@ -15,7 +15,7 @@ class Tenant(Base):
     slug = Column(String(100), unique=True, nullable=False)
 
     plan_code = Column(Integer, nullable=False, default=1001)
-    is_active = Column(Boolean, default=True)
+    is_active: bool = Column(Boolean, default=True)
 
     settings = Column(JSONB, default=dict)
 
