@@ -6,6 +6,7 @@ from sqlalchemy.exc import IntegrityError
 
 from app.api import tenant_api
 from app.api import role_api
+from app.api.Settings import master_codes as master_code_api
 
 app = FastAPI(
     title="MediFlow API",
@@ -53,6 +54,7 @@ async def global_exception_handler(request: Request, exc: Exception):
 # Routers
 app.include_router(tenant_api.router)
 app.include_router(role_api.router)
+app.include_router(master_code_api.router)
 
 
 

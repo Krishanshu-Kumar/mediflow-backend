@@ -5,6 +5,8 @@ import uuid
 
 from app.core.database import Base
 
+from sqlalchemy.orm import Mapped
+
 class AuthUser(Base):
     __tablename__ = "tb_auth_users"
 
@@ -32,7 +34,7 @@ class AuthUser(Base):
 
     phone = Column(String(20), nullable=True)
 
-    is_active: bool = Column(Boolean, default=True)
+    is_active: Mapped[bool] = Column(Boolean, default=True)  # type: ignore[assignment]
     is_verified = Column(Boolean, default=False)
 
     last_login_at = Column(DateTime(timezone=True), nullable=True)

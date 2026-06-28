@@ -6,6 +6,8 @@ import uuid
 from app.core.database import Base
 
 
+from sqlalchemy.orm import Mapped
+
 class Tenant(Base):
     __tablename__ = "tb_gl_tenants"
 
@@ -15,7 +17,7 @@ class Tenant(Base):
     slug = Column(String(100), unique=True, nullable=False)
 
     plan_code = Column(Integer, nullable=False, default=1001)
-    is_active: bool = Column(Boolean, default=True)
+    is_active: Mapped[bool] = Column(Boolean, default=True)  # type: ignore[assignment]
 
     settings = Column(JSONB, default=dict)
 

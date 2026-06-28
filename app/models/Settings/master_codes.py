@@ -6,6 +6,8 @@ import uuid
 from app.core.database import Base
 
 
+from sqlalchemy.orm import Mapped
+
 class MasterCode(Base):
     __tablename__ = "tb_gl_master_codes"
 
@@ -21,7 +23,7 @@ class MasterCode(Base):
     sort_order = Column(Integer, nullable=False, default=0)
     description = Column(Text, nullable=True)
 
-    is_active: bool = Column(Boolean, nullable=False, default=True)
+    is_active: Mapped[bool] = Column(Boolean, nullable=False, default=True)  # type: ignore[assignment]
     is_system_code = Column(Boolean, nullable=False, default=False)
 
     # Temporary: keeping independent while bootstrapping core models
