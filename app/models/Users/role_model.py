@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Boolean, Integer, DateTime
+from sqlalchemy import Column, String, Boolean, Integer, DateTime, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
 import uuid
@@ -22,22 +22,18 @@ class Role(Base):
     is_system_role = Column(Boolean, default=False)
     is_active: Mapped[bool] = Column(Boolean, default=True)  # type: ignore[assignment]
 
-    # Temporary: keeping independent while bootstrapping core models
-    created_by = Column(UUID(as_uuid=True), nullable=True)
-    updated_by = Column(UUID(as_uuid=True), nullable=True)
+    # ForeignKey referencing AuthUser (tb_auth_users)
+    created_by = Column(
+        UUID(as_uuid=True),
+        ForeignKey("tb_auth_users.id"),
+        nullable=True,
+    )
 
-    # Uncomment after AuthUser model is created and registered
-    # created_by = Column(
-    #     UUID(as_uuid=True),
-    #     ForeignKey("tb_auth_users.id"),
-    #     nullable=True,
-    # )
-    #
-    # updated_by = Column(
-    #     UUID(as_uuid=True),
-    #     ForeignKey("tb_auth_users.id"),
-    #     nullable=True,
-    # )
+    updated_by = Column(
+        UUID(as_uuid=True),
+        ForeignKey("tb_auth_users.id"),
+        nullable=True,
+    )
 
     created_at = Column(
         DateTime(timezone=True),
