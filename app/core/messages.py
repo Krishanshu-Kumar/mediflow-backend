@@ -1,3 +1,7 @@
 TENANT_NOT_FOUND = "Tenant not found"
 ROLE_NOT_FOUND = "Role not found"
 MASTER_CODE_NOT_FOUND = "Master code not found"
+USER_NOT_FOUND = "User not found"
+EMAIL_ALREADY_EXISTS = "Email already registered for this tenant"
+INVALID_CREDENTIALS = "Incorrect email, password, or tenant ID"
+INACTIVE_USER = "User is inactive"

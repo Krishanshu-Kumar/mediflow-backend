@@ -26,22 +26,18 @@ class MasterCode(Base):
     is_active: Mapped[bool] = Column(Boolean, nullable=False, default=True)  # type: ignore[assignment]
     is_system_code = Column(Boolean, nullable=False, default=False)
 
-    # Temporary: keeping independent while bootstrapping core models
-    created_by = Column(UUID(as_uuid=True), nullable=True)
-    updated_by = Column(UUID(as_uuid=True), nullable=True)
+    # ForeignKey referencing AuthUser (tb_auth_users)
+    created_by = Column(
+        UUID(as_uuid=True),
+        ForeignKey("tb_auth_users.id"),
+        nullable=True,
+    )
 
-    # Uncomment after AuthUser model is created and registered
-    # created_by = Column(
-    #     UUID(as_uuid=True),
-    #     ForeignKey("tb_auth_users.id"),
-    #     nullable=True,
-    # )
-    #
-    # updated_by = Column(
-    #     UUID(as_uuid=True),
-    #     ForeignKey("tb_auth_users.id"),
-    #     nullable=True,
-    # )
+    updated_by = Column(
+        UUID(as_uuid=True),
+        ForeignKey("tb_auth_users.id"),
+        nullable=True,
+    )
 
     created_at = Column(
         DateTime(timezone=True),
