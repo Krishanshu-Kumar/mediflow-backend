@@ -16,7 +16,6 @@ app = FastAPI(
     version="1.0.0"
 )
 
-
 # Exception Handlers
 
 @app.exception_handler(IntegrityError)

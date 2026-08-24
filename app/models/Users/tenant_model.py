@@ -1,14 +1,14 @@
-from sqlalchemy import Column, String, Boolean, Integer, DateTime, ForeignKey
+from sqlalchemy import Column, String, Boolean, Integer
 from sqlalchemy.dialects.postgresql import UUID, JSONB
-from sqlalchemy.sql import func
+from sqlalchemy.orm import Mapped, relationship, foreign
 import uuid
 
 from app.core.database import Base
+from app.models.base_model import AuditMixin
+from app.models.Settings.master_codes import MasterCode
 
 
-from sqlalchemy.orm import Mapped
-
-class Tenant(Base):
+class Tenant(Base, AuditMixin):
     __tablename__ = "tb_gl_tenants"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -21,8 +21,9 @@ class Tenant(Base):
 
     settings = Column(JSONB, default=dict)
 
-    created_by = Column(UUID(as_uuid=True), ForeignKey("tb_auth_users.id"), nullable=True)
-    updated_by = Column(UUID(as_uuid=True), ForeignKey("tb_auth_users.id"), nullable=True)
-
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    plan_details = relationship(
+        "MasterCode",
+        primaryjoin="Tenant.plan_code == foreign(MasterCode.code)",
+        uselist=False,
+        lazy="joined",
+    )

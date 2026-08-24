@@ -27,8 +27,12 @@ class TenantUpdate(BaseModel):
     settings: Optional[Dict[str, Any]] = None
 
 
+from app.schemas.Settings.master_codes import MasterCodeResponse
+
+
 class TenantResponse(TenantBase):
     id: UUID
+    plan_details: Optional[MasterCodeResponse] = None
     created_at: datetime
     updated_at: datetime
     created_by: Optional[UUID]
