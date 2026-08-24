@@ -1,14 +1,14 @@
-from sqlalchemy import Column, String, Boolean, Integer, DateTime, ForeignKey
+from sqlalchemy import Column, String, Boolean, Integer
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.sql import func
 import uuid
 
 from app.core.database import Base
+from app.models.base_model import AuditMixin
 
 
 from sqlalchemy.orm import Mapped
 
-class Role(Base):
+class Role(Base, AuditMixin):
     __tablename__ = "tb_gl_roles"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -21,27 +21,3 @@ class Role(Base):
 
     is_system_role: Mapped[bool] = Column(Boolean, default=False)  # type: ignore[assignment]
     is_active: Mapped[bool] = Column(Boolean, default=True)  # type: ignore[assignment]
-
-    # ForeignKey referencing AuthUser (tb_auth_users)
-    created_by = Column(
-        UUID(as_uuid=True),
-        ForeignKey("tb_auth_users.id"),
-        nullable=True,
-    )
-
-    updated_by = Column(
-        UUID(as_uuid=True),
-        ForeignKey("tb_auth_users.id"),
-        nullable=True,
-    )
-
-    created_at = Column(
-        DateTime(timezone=True),
-        server_default=func.now(),
-    )
-
-    updated_at = Column(
-        DateTime(timezone=True),
-        server_default=func.now(),
-        onupdate=func.now(),
-    )

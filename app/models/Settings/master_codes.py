@@ -1,14 +1,13 @@
-from sqlalchemy import Column, String, Boolean, Integer, DateTime, ForeignKey, UniqueConstraint, CheckConstraint, Text
+from sqlalchemy import Column, String, Boolean, Integer, UniqueConstraint, CheckConstraint, Text
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.sql import func
 import uuid
 
 from app.core.database import Base
-
-
+from app.models.base_model import AuditMixin
 from sqlalchemy.orm import Mapped
 
-class MasterCode(Base):
+
+class MasterCode(Base, AuditMixin):
     __tablename__ = "tb_gl_master_codes"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -25,30 +24,6 @@ class MasterCode(Base):
 
     is_active: Mapped[bool] = Column(Boolean, nullable=False, default=True)  # type: ignore[assignment]
     is_system_code = Column(Boolean, nullable=False, default=False)
-
-    # ForeignKey referencing AuthUser (tb_auth_users)
-    created_by = Column(
-        UUID(as_uuid=True),
-        ForeignKey("tb_auth_users.id"),
-        nullable=True,
-    )
-
-    updated_by = Column(
-        UUID(as_uuid=True),
-        ForeignKey("tb_auth_users.id"),
-        nullable=True,
-    )
-
-    created_at = Column(
-        DateTime(timezone=True),
-        server_default=func.now(),
-    )
-
-    updated_at = Column(
-        DateTime(timezone=True),
-        server_default=func.now(),
-        onupdate=func.now(),
-    )
 
     __table_args__ = (
         UniqueConstraint(
