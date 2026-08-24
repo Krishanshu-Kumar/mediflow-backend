@@ -1,13 +1,12 @@
-from sqlalchemy import Column, String, Boolean, Integer, DateTime, ForeignKey
+from sqlalchemy import Column, String, Boolean, Integer
 from sqlalchemy.dialects.postgresql import UUID, JSONB
-from sqlalchemy.sql import func
+from sqlalchemy.orm import Mapped, relationship, foreign
 import uuid
 
 from app.core.database import Base
 from app.models.base_model import AuditMixin
+from app.models.Settings.master_codes import MasterCode
 
-
-from sqlalchemy.orm import Mapped
 
 class Tenant(Base, AuditMixin):
     __tablename__ = "tb_gl_tenants"
@@ -21,3 +20,10 @@ class Tenant(Base, AuditMixin):
     is_active: Mapped[bool] = Column(Boolean, default=True)  # type: ignore[assignment]
 
     settings = Column(JSONB, default=dict)
+
+    plan_details = relationship(
+        "MasterCode",
+        primaryjoin="Tenant.plan_code == foreign(MasterCode.code)",
+        uselist=False,
+        lazy="joined",
+    )
