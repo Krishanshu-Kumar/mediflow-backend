@@ -19,7 +19,7 @@ class Role(Base):
     name = Column(String(50), unique=True, nullable=False)
     display_name = Column(String(100), nullable=False)
 
-    is_system_role = Column(Boolean, default=False)
+    is_system_role: Mapped[bool] = Column(Boolean, default=False)  # type: ignore[assignment]
     is_active: Mapped[bool] = Column(Boolean, default=True)  # type: ignore[assignment]
 
     # ForeignKey referencing AuthUser (tb_auth_users)
