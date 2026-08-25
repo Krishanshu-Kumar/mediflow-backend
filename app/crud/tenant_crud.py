@@ -6,7 +6,7 @@ from uuid import UUID
 from typing import Optional, List
 
 
-def _set_tenant_active_status(
+def set_tenant_active_status(
     db: Session,
     tenant_id: UUID,
     is_active: bool,
@@ -18,6 +18,7 @@ def _set_tenant_active_status(
 
     db_tenant.is_active = is_active
     return commit_refresh(db, db_tenant)
+
 
 
 def create_tenant(db: Session, tenant: TenantCreate, created_by: Optional[UUID] = None) -> Tenant:
@@ -98,11 +99,12 @@ def deactivate_tenant(db: Session, tenant_id: UUID) -> Optional[Tenant]:
     Soft delete - mark tenant as inactive
     (We don't hard delete in production systems)
     """
-    return _set_tenant_active_status(db, tenant_id, False)
+    return set_tenant_active_status(db, tenant_id, False)
 
 
 def activate_tenant(db: Session, tenant_id: UUID) -> Optional[Tenant]:
     """
     Reactivate a previously deactivated tenant
     """
-    return _set_tenant_active_status(db, tenant_id, True)
+    return set_tenant_active_status(db, tenant_id, True)
+

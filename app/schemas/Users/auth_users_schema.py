@@ -86,9 +86,16 @@ class UserResponse(UserBase):
 
 
 class UserLogin(BaseModel):
-    tenant_id: UUID
     email: str = Field(..., max_length=255)
     password: str = Field(..., max_length=255)
+    tenant_id: Optional[UUID] = None
+
+
+class TenantOption(BaseModel):
+    tenant_id: UUID
+    name: str
+    slug: str
+
 
 
 class Token(BaseModel):

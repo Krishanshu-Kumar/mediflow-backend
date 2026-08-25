@@ -32,6 +32,21 @@ def get_user_by_email_and_tenant(
     )
 
 
+def get_users_by_email(
+    db: Session,
+    email: str,
+    active_only: bool = True,
+) -> List[AuthUser]:
+    """
+    Retrieve all user accounts matching an email across tenants.
+    """
+    query = db.query(AuthUser).filter(AuthUser.email == email)
+    if active_only:
+        query = query.filter(AuthUser.is_active == True)
+    return query.all()
+
+
+
 def create_user(
     db: Session,
     user: UserCreate,

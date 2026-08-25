@@ -2,11 +2,14 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from uuid import UUID
+from typing import List, Optional
+from datetime import datetime, timezone
 
 from app.core.database import get_db
 from app.core import status_codes, messages
 from app.core.dependencies import get_current_active_user
-from app.core.security import create_access_token
+from app.core.security import create_access_token, verify_password
+from app.crud.base import commit_refresh
 from app.crud import auth_users_crud, tenant_crud, role_crud
 from app.models.Users.auth_users_model import AuthUser
 from app.schemas.Users.auth_users_schema import (
@@ -67,22 +70,64 @@ def login_for_access_token(
 ):
     """
     Authenticate a user via JSON payload and return an access token.
+    If tenant_id is provided, authenticates against that tenant.
+    If tenant_id is omitted, auto-resolves tenant from email.
     """
-    user = auth_users_crud.authenticate_user(
-        db,
-        email=login_data.email,
-        tenant_id=login_data.tenant_id,
-        password=login_data.password,
-    )
+    user: Optional[AuthUser] = None
+
+    if login_data.tenant_id:
+        user = auth_users_crud.authenticate_user(
+            db,
+            email=login_data.email,
+            tenant_id=login_data.tenant_id,
+            password=login_data.password,
+        )
+        if not user:
+            raise HTTPException(
+                status_code=status_codes.HTTP_401_UNAUTHORIZED,
+                detail=messages.INVALID_CREDENTIALS,
+            )
+        if not user.is_active:
+            raise HTTPException(
+                status_code=status_codes.HTTP_400_BAD_REQUEST,
+                detail=messages.INACTIVE_USER,
+            )
+    else:
+        # Auto-resolve tenant_id from email
+        users = auth_users_crud.get_users_by_email(db, email=login_data.email, active_only=True)
+        valid_users = [
+            u for u in users
+            if u.hashed_password and verify_password(login_data.password, str(u.hashed_password))
+        ]
+
+        if not valid_users:
+            raise HTTPException(
+                status_code=status_codes.HTTP_401_UNAUTHORIZED,
+                detail=messages.INVALID_CREDENTIALS,
+            )
+
+        if len(valid_users) > 1:
+            tenant_options = []
+            for u in valid_users:
+                t = tenant_crud.get_tenant_by_id(db, UUID(str(u.tenant_id)))
+                if t:
+                    tenant_options.append({"tenant_id": str(t.id), "name": t.name, "slug": t.slug})
+            raise HTTPException(
+                status_code=status_codes.HTTP_400_BAD_REQUEST,
+                detail={
+                    "message": "Email exists in multiple tenants. Please specify tenant_id.",
+                    "available_tenants": tenant_options,
+                },
+            )
+
+        user = valid_users[0]
+        user.last_login_at = datetime.now(timezone.utc)
+        commit_refresh(db, user)
+
     if not user:
         raise HTTPException(
             status_code=status_codes.HTTP_401_UNAUTHORIZED,
             detail=messages.INVALID_CREDENTIALS,
-        )
-    if not user.is_active:
-        raise HTTPException(
-            status_code=status_codes.HTTP_400_BAD_REQUEST,
-            detail=messages.INACTIVE_USER,
         )
 
     access_token = create_access_token(subject=UUID(str(user.id)))
@@ -103,7 +148,7 @@ def login_for_access_token_form(
     username = form_data.username
     password = form_data.password
 
-    tenant_id = None
+    tenant_id: Optional[UUID] = None
     email = username
 
     if "|" in username:

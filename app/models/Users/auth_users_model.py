@@ -1,6 +1,7 @@
 from sqlalchemy import Column, String, Boolean, DateTime, ForeignKey, Text
 from sqlalchemy.dialects.postgresql import UUID
 import uuid
+from datetime import datetime
 from typing import Optional
 
 from app.core.database import Base
@@ -38,9 +39,10 @@ class AuthUser(Base, AuditMixin):
     is_active: Mapped[bool] = Column(Boolean, default=True)  # type: ignore[assignment]
     is_verified: Mapped[bool] = Column(Boolean, default=False)  # type: ignore[assignment]
 
-    last_login_at: Mapped[Optional[DateTime]] = Column(DateTime(timezone=True), nullable=True)  # type: ignore[assignment]
+    last_login_at: Mapped[Optional[datetime]] = Column(DateTime(timezone=True), nullable=True)  # type: ignore[assignment]
 
-    password_changed_at: Mapped[Optional[DateTime]] = Column(  # type: ignore[assignment]
+    password_changed_at: Mapped[Optional[datetime]] = Column(  # type: ignore[assignment]
         DateTime(timezone=True),
         nullable=True,
-    )
+    )
+

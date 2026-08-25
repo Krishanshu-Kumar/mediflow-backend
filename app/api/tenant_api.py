@@ -54,3 +54,48 @@ def get_tenant(tenant_id: UUID, db: Session = Depends(get_db)):
             detail=messages.TENANT_NOT_FOUND,
         )
     return tenant
+
+
+@router.put("/{tenant_id}", response_model=TenantResponse)
+def update_tenant(
+    tenant_id: UUID,
+    tenant_update: TenantUpdate,
+    current_user: AuthUser = Depends(get_current_super_admin),
+    db: Session = Depends(get_db),
+):
+    """
+    Update tenant details. Restricted to System Super Admins.
+    """
+    tenant = tenant_crud.update_tenant(
+        db,
+        tenant_id,
+        tenant_update,
+        updated_by=UUID(str(current_user.id)),
+    )
+    if not tenant:
+        raise HTTPException(
+            status_code=status_codes.HTTP_404_NOT_FOUND,
+            detail=messages.TENANT_NOT_FOUND,
+        )
+    return tenant
+
+
+@router.patch("/{tenant_id}/status", response_model=TenantResponse)
+def set_tenant_status(
+    tenant_id: UUID,
+    is_active: bool = Query(..., description="Set active (true) or inactive (false) status"),
+    current_user: AuthUser = Depends(get_current_super_admin),
+    db: Session = Depends(get_db),
+):
+    """
+    Activate or deactivate a tenant. Restricted to System Super Admins.
+    """
+    tenant = tenant_crud.set_tenant_active_status(db, tenant_id, is_active)
+    if not tenant:
+        raise HTTPException(
+            status_code=status_codes.HTTP_404_NOT_FOUND,
+            detail=messages.TENANT_NOT_FOUND,
+        )
+    return tenant
+
+
