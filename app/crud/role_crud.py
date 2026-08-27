@@ -6,7 +6,7 @@ from uuid import UUID
 from typing import Optional, List
 
 
-def _set_role_active_status(
+def set_role_active_status(
     db: Session,
     role_id: UUID,
     is_active: bool,
@@ -106,31 +106,3 @@ def update_role(
     apply_updates(db_role, update_data)
 
     return commit_refresh(db, db_role)
-
-
-def deactivate_role(
-    db: Session,
-    role_id: UUID,
-) -> Optional[Role]:
-    """
-    Soft delete - mark role as inactive
-    """
-    return _set_role_active_status(
-        db,
-        role_id,
-        False,
-    )
-
-
-def activate_role(
-    db: Session,
-    role_id: UUID,
-) -> Optional[Role]:
-    """
-    Reactivate a previously deactivated role
-    """
-    return _set_role_active_status(
-        db,
-        role_id,
-        True,
-    )

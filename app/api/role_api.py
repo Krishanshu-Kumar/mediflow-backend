@@ -1,3 +1,4 @@
+from app.crud import role_crud
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from uuid import UUID
@@ -81,40 +82,17 @@ def update_role(
 
     return role
 
-
-@router.patch("/{role_id}/deactivate", response_model=RoleResponse)
-def deactivate_role(
+@router.patch("/{role_id}/status", response_model=RoleResponse)
+def set_role_status(
     role_id: UUID,
+    is_active: bool = Query(..., description="Set active (true) or inactive (false) status"),
     db: Session = Depends(get_db),
 ):
-    role = role_crud.deactivate_role(
-        db,
-        role_id,
-    )
+    role = role_crud.set_role_active_status(db, role_id, is_active)
 
     if not role:
         raise HTTPException(
             status_code=status_codes.HTTP_404_NOT_FOUND,
             detail=messages.ROLE_NOT_FOUND,
         )
-
-    return role
-
-
-@router.patch("/{role_id}/activate", response_model=RoleResponse)
-def activate_role(
-    role_id: UUID,
-    db: Session = Depends(get_db),
-):
-    role = role_crud.activate_role(
-        db,
-        role_id,
-    )
-
-    if not role:
-        raise HTTPException(
-            status_code=status_codes.HTTP_404_NOT_FOUND,
-            detail=messages.ROLE_NOT_FOUND,
-        )
-
     return role
