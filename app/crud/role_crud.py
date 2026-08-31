@@ -1,5 +1,11 @@
 from sqlalchemy.orm import Session
-from app.crud.base import apply_updates, commit_refresh, schema_to_dict
+from app.crud.base import (
+    create_instance,
+    get_by_id,
+    get_multi,
+    update_fields,
+    update_instance,
+)
 from app.models.Users.role_model import Role
 from app.schemas.Users.role_schema import RoleCreate, RoleUpdate
 from uuid import UUID
@@ -11,13 +17,15 @@ def set_role_active_status(
     role_id: UUID,
     is_active: bool,
 ) -> Optional[Role]:
-    db_role = get_role_by_id(db, role_id)
+    return update_fields(db, Role, role_id, is_active=is_active)
 
-    if not db_role:
-        return None
 
-    db_role.is_active = is_active
-    return commit_refresh(db, db_role)
+def set_role_system_status(
+    db: Session,
+    role_id: UUID,
+    is_system_role: bool,
+) -> Optional[Role]:
+    return update_fields(db, Role, role_id, is_system_role=is_system_role)
 
 
 def create_role(
@@ -28,15 +36,7 @@ def create_role(
     """
     Create a new role in the database
     """
-    role_data = schema_to_dict(role)
-
-    if created_by:
-        role_data["created_by"] = created_by
-
-    db_role = Role(**role_data)
-    db.add(db_role)
-
-    return commit_refresh(db, db_role)
+    return create_instance(db, Role, role, created_by=created_by)
 
 
 def get_role_by_id(
@@ -46,7 +46,7 @@ def get_role_by_id(
     """
     Get a single role by ID
     """
-    return db.query(Role).filter(Role.id == role_id).first()
+    return get_by_id(db, Role, role_id)
 
 
 def get_role_by_name(
@@ -67,18 +67,8 @@ def get_roles(
 ) -> List[Role]:
     """
     Get a list of roles with pagination
-
-    Args:
-        skip: Number of records to skip
-        limit: Maximum number of records to return
-        active_only: If True, only return active roles
     """
-    query = db.query(Role)
-
-    if active_only:
-        query = query.filter(Role.is_active)
-
-    return query.offset(skip).limit(limit).all()
+    return get_multi(db, Role, skip=skip, limit=limit, active_only=active_only)
 
 
 def update_role(
@@ -90,19 +80,4 @@ def update_role(
     """
     Update a role's information
     """
-    db_role = get_role_by_id(db, role_id)
-
-    if not db_role:
-        return None
-
-    update_data = schema_to_dict(
-        role_update,
-        exclude_unset=True,
-    )
-
-    if updated_by:
-        update_data["updated_by"] = updated_by
-
-    apply_updates(db_role, update_data)
-
-    return commit_refresh(db, db_role)
+    return update_instance(db, Role, role_id, role_update, updated_by=updated_by)
