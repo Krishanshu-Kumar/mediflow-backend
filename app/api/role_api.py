@@ -96,3 +96,19 @@ def set_role_status(
             detail=messages.ROLE_NOT_FOUND,
         )
     return role
+
+
+@router.patch("/{role_id}/system-status", response_model=RoleResponse)
+def set_role_system_status(
+    role_id: UUID,
+    is_system_role: bool = Query(..., description="Set system role (true) or non-system role (false) status"),
+    db: Session = Depends(get_db),
+):
+    role = role_crud.set_role_system_status(db, role_id, is_system_role)
+
+    if not role:
+        raise HTTPException(
+            status_code=status_codes.HTTP_404_NOT_FOUND,
+            detail=messages.ROLE_NOT_FOUND,
+        )
+    return role
