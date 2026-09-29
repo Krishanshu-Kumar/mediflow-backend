@@ -1,3 +1,6 @@
-from app.crud import tenant_crud
+# Model registry.
+# Alembic imports this package to discover tables: every model that should
+# exist in the database must be imported here, or autogenerate won't see it.
+from app.models.Settings.master_codes import MasterCode
 
-__all__ = ["tenant_crud"]
+__all__ = ["MasterCode"]

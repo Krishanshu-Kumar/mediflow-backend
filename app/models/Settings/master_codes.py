@@ -1,40 +1,44 @@
-from sqlalchemy import Column, String, Boolean, Integer, UniqueConstraint, CheckConstraint, Text
-from sqlalchemy.dialects.postgresql import UUID
-import uuid
+from enum import IntEnum
+
+from sqlalchemy import Boolean, CheckConstraint, Computed, Integer, String, UniqueConstraint
+from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
-from app.models.base_model import AuditMixin
-from sqlalchemy.orm import Mapped
 
 
-class MasterCode(Base, AuditMixin):
+class MasterCodeCategory(IntEnum):
+    """
+    Each category owns a block of 1000 codes: category 1000 owns 1001-1999.
+    Add a category here only when a feature starts using it.
+    """
+    PLAN = 1000
+
+
+class MasterCode(Base):
+    """
+    Global lookup values (plans, statuses, ...), referenced by other tables
+    through `code`. Rows are managed by migrations, not by the API.
+    """
     __tablename__ = "tb_gl_master_codes"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    code: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=False)
 
-    category_code = Column(Integer, nullable=False)
-    category_name = Column(String(100), nullable=False)
+    # Derived by Postgres from `code` (4007 -> 4000), so it can never disagree with it.
+    # Category lookups use the (category_code, value) unique index below.
+    category_code: Mapped[int] = mapped_column(
+        Integer,
+        Computed("(code / 1000) * 1000", persisted=True),
+    )
 
-    code = Column(Integer, unique=True, nullable=False)
-    value = Column(String(100), nullable=False)
-    display_name = Column(String(150), nullable=False)
+    value: Mapped[str] = mapped_column(String(50))
+    display_name: Mapped[str] = mapped_column(String(100))
 
-    sort_order = Column(Integer, nullable=False, default=0)
-    description = Column(Text, nullable=True)
-
-    is_active: Mapped[bool] = Column(Boolean, nullable=False, default=True)  # type: ignore[assignment]
-    is_system_code = Column(Boolean, nullable=False, default=False)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
 
     __table_args__ = (
-        UniqueConstraint(
-            "category_code", "value", name="uq_tb_gl_master_codes_category_value"
-        ),
-        CheckConstraint(
-            "category_code > 0", name="ck_tb_gl_master_codes_category_code"
-        ),
-        CheckConstraint("code > 0", name="ck_tb_gl_master_codes_code"),
-        CheckConstraint(
-            "code >= category_code AND code < (category_code + 1000)",
-            name="ck_tb_gl_master_codes_code_in_category",
-        ),
+        UniqueConstraint("category_code", "value"),
+        # X000 is the category itself, not a usable code
+        CheckConstraint("code > 0 AND mod(code, 1000) <> 0", name="code_not_category"),
+        CheckConstraint("value ~ '^[a-z0-9_]+$'", name="value_format"),
+        CheckConstraint("btrim(display_name) <> ''", name="display_name_not_blank"),
     )
