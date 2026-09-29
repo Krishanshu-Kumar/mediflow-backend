@@ -1,5 +1,4 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from uuid import UUID
 
 
 class Settings(BaseSettings):
@@ -12,7 +11,6 @@ class Settings(BaseSettings):
     AI_MODEL_CODER: str = "qwen2.5-coder:3b"
     AI_BASE_URL: str = "http://localhost:11434/v1"
     DEBUG: bool = False
-    SYSTEM_TENANT_ID: UUID  # Master MEDIFLOW tenant — immutable via API
 
     model_config = SettingsConfigDict(
         env_file=".env",

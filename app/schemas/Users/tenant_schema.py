@@ -1,42 +1,38 @@
-from pydantic import BaseModel, Field
-from uuid import UUID
-from typing import Optional, Dict, Any
 from datetime import datetime
+from typing import Optional
+from uuid import UUID
+
+from pydantic import BaseModel, ConfigDict, Field
+
+from app.schemas.Settings.master_codes import MasterCodeResponse
+
+SLUG_PATTERN = r"^[a-z0-9]+(-[a-z0-9]+)*$"
 
 
-class TenantBase(BaseModel):
-    name: str = Field(..., max_length=255)
-    slug: str = Field(..., max_length=100)
+class TenantCreate(BaseModel):
+    name: str = Field(..., min_length=1, max_length=255)
+    slug: str = Field(..., max_length=100, pattern=SLUG_PATTERN)
     plan_code: int = 1001
-    is_active: bool = True
-    settings: Dict[str, Any] = {}
-
-
-class TenantCreate(TenantBase):
-    pass
 
 
 class TenantUpdate(BaseModel):
     """
-    All fields optional for partial updates
+    All fields optional for partial updates.
+    Activation is done through the /status endpoint only.
     """
-    name: Optional[str] = Field(None, max_length=255)
-    slug: Optional[str] = Field(None, max_length=100)
+    name: Optional[str] = Field(None, min_length=1, max_length=255)
+    slug: Optional[str] = Field(None, max_length=100, pattern=SLUG_PATTERN)
     plan_code: Optional[int] = None
-    is_active: Optional[bool] = None
-    settings: Optional[Dict[str, Any]] = None
 
 
-from app.schemas.Settings.master_codes import MasterCodeResponse
+class TenantResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
 
-
-class TenantResponse(TenantBase):
     id: UUID
-    plan_details: Optional[MasterCodeResponse] = None
+    name: str
+    slug: str
+    plan_code: int
+    plan: MasterCodeResponse
+    is_active: bool
     created_at: datetime
     updated_at: datetime
-    created_by: Optional[UUID]
-    updated_by: Optional[UUID]
-
-    class Config:
-        from_attributes = True
