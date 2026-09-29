@@ -6,6 +6,7 @@ class MasterCodeResponse(BaseModel):
 
     code: int
     category_code: int
+    category_name: str
     value: str
     display_name: str
     is_active: bool

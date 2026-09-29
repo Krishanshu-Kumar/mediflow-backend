@@ -29,6 +29,7 @@ class MasterCode(Base):
         Integer,
         Computed("(code / 1000) * 1000", persisted=True),
     )
+    category_name: Mapped[str] = mapped_column(String(50))
 
     value: Mapped[str] = mapped_column(String(50))
     display_name: Mapped[str] = mapped_column(String(100))
@@ -39,6 +40,7 @@ class MasterCode(Base):
         UniqueConstraint("category_code", "value"),
         # X000 is the category itself, not a usable code
         CheckConstraint("code > 0 AND mod(code, 1000) <> 0", name="code_not_category"),
+        CheckConstraint("category_name ~ '^[a-z0-9_]+$'", name="category_name_format"),
         CheckConstraint("value ~ '^[a-z0-9_]+$'", name="value_format"),
         CheckConstraint("btrim(display_name) <> ''", name="display_name_not_blank"),
     )
