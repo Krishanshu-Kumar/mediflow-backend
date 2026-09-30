@@ -8,13 +8,12 @@ from uuid import UUID
 from pydantic import ValidationError
 
 from app.core.config import settings
+from app.core.constants import SUPER_ADMIN_ROLE_ID, SYSTEM_TENANT_ID
 from app.core.database import get_db
 from app.core import status_codes, messages
-from app.crud import auth_users_crud, role_crud
+from app.crud import auth_users_crud
 from app.models.Users.auth_users_model import AuthUser
 from app.schemas.Users.auth_users_schema import TokenPayload
-from typing import cast
-from uuid import UUID as UUIDType
 
 
 # OAuth2 scheme for extracting Bearer token
@@ -83,19 +82,12 @@ def get_current_active_user(
 
 def get_current_super_admin(
     current_user: AuthUser = Depends(get_current_active_user),
-    db: Session = Depends(get_db),
 ) -> AuthUser:
     """
-    Validate that the current active user is a System Super Admin.
+    Validate that the current active user is a platform Super Admin:
+    a member of the MediFlow tenant holding the Super Admin role.
     """
-    if not current_user.role_id:
-        raise HTTPException(
-            status_code=status_codes.HTTP_403_FORBIDDEN,
-            detail=messages.SUPER_ADMIN_REQUIRED,
-        )
-
-    role = role_crud.get_role_by_id(db, role_id=cast(UUIDType, current_user.role_id))
-    if not role or not bool(role.is_system_role):
+    if current_user.tenant_id != SYSTEM_TENANT_ID or current_user.role_id != SUPER_ADMIN_ROLE_ID:
         raise HTTPException(
             status_code=status_codes.HTTP_403_FORBIDDEN,
             detail=messages.SUPER_ADMIN_REQUIRED,

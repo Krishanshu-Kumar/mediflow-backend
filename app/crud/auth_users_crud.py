@@ -27,7 +27,7 @@ def get_user_by_email_and_tenant(
     """
     return (
         db.query(AuthUser)
-        .filter(AuthUser.email == email, AuthUser.tenant_id == tenant_id)
+        .filter(AuthUser.email == email.lower(), AuthUser.tenant_id == tenant_id)
         .first()
     )
 
@@ -40,7 +40,7 @@ def get_users_by_email(
     """
     Retrieve all user accounts matching an email across tenants.
     """
-    query = db.query(AuthUser).filter(AuthUser.email == email)
+    query = db.query(AuthUser).filter(AuthUser.email == email.lower())
     if active_only:
         query = query.filter(AuthUser.is_active == True)
     return query.all()
@@ -63,7 +63,6 @@ def create_user(
 
     if created_by:
         user_data["created_by"] = created_by
-        user_data["updated_by"] = created_by
 
     db_user = AuthUser(**user_data)
     db.add(db_user)
@@ -95,8 +94,7 @@ def update_user(
     updated_by: Optional[UUID] = None,
 ) -> AuthUser:
     """
-    Update a user's details. If password is provided, it is hashed,
-    and password_changed_at is updated.
+    Update a user's details. If password is provided, it is hashed.
     """
     update_data = schema_to_dict(user_update, exclude_unset=True)
 
@@ -104,7 +102,6 @@ def update_user(
         password = update_data.pop("password")
         if password:
             update_data["hashed_password"] = get_password_hash(password)
-            update_data["password_changed_at"] = func.now()
 
     if updated_by:
         update_data["updated_by"] = updated_by

@@ -1,101 +1,70 @@
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 from uuid import UUID
 from typing import Optional
 from datetime import datetime
 import re
 
-# Match the DB check constraints
+# Match the DB check constraint
 EMAIL_REGEX = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
-PHONE_REGEX = re.compile(r"^\+[1-9]\d{7,14}$")
 
 
-class UserBase(BaseModel):
+def normalize_email(v: str) -> str:
+    """Emails are stored lowercase (DB check), so normalize before validating."""
+    v = v.strip().lower()
+    if not EMAIL_REGEX.match(v):
+        raise ValueError("Invalid email format")
+    return v
+
+
+class UserCreate(BaseModel):
+    tenant_id: UUID
+    role_id: UUID
     email: str = Field(..., max_length=255)
-    full_name: str = Field(..., max_length=255)
-    phone: Optional[str] = Field(None, max_length=20)
-    is_active: bool = True
-    is_verified: bool = False
+    full_name: str = Field(..., min_length=1, max_length=255)
+    password: str = Field(..., min_length=8, max_length=72)  # bcrypt ignores bytes past 72
 
     @field_validator("email")
     @classmethod
     def validate_email(cls, v: str) -> str:
-        if not EMAIL_REGEX.match(v):
-            raise ValueError("Invalid email format")
-        return v
-
-    @field_validator("phone")
-    @classmethod
-    def validate_phone(cls, v: Optional[str]) -> Optional[str]:
-        if v is not None:
-            if not PHONE_REGEX.match(v):
-                raise ValueError(
-                    "Phone number must be E.164 format: +[country_code][number] (e.g. +1234567890)"
-                )
-        return v
-
-
-class UserCreate(UserBase):
-    tenant_id: UUID
-    role_id: UUID
-    identity_id: Optional[UUID] = None
-    password: str = Field(..., min_length=6, max_length=255)
+        return normalize_email(v)
 
 
 class UserUpdate(BaseModel):
+    """
+    All fields optional for partial updates.
+    Activation is done through the activate/deactivate endpoints only.
+    """
     email: Optional[str] = Field(None, max_length=255)
-    full_name: Optional[str] = Field(None, max_length=255)
-    phone: Optional[str] = Field(None, max_length=20)
+    full_name: Optional[str] = Field(None, min_length=1, max_length=255)
     role_id: Optional[UUID] = None
-    identity_id: Optional[UUID] = None
-    password: Optional[str] = Field(None, min_length=6, max_length=255)
-    is_active: Optional[bool] = None
-    is_verified: Optional[bool] = None
+    password: Optional[str] = Field(None, min_length=8, max_length=72)
 
     @field_validator("email")
     @classmethod
     def validate_email(cls, v: Optional[str]) -> Optional[str]:
-        if v is not None and not EMAIL_REGEX.match(v):
-            raise ValueError("Invalid email format")
-        return v
-
-    @field_validator("phone")
-    @classmethod
-    def validate_phone(cls, v: Optional[str]) -> Optional[str]:
-        if v is not None:
-            if not PHONE_REGEX.match(v):
-                raise ValueError(
-                    "Phone number must be E.164 format: +[country_code][number] (e.g. +1234567890)"
-                )
-        return v
+        return normalize_email(v) if v is not None else v
 
 
-class UserResponse(UserBase):
+class UserResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: UUID
     tenant_id: UUID
     role_id: UUID
-    identity_id: Optional[UUID]
+    email: str
+    full_name: str
+    is_active: bool
     last_login_at: Optional[datetime]
-    password_changed_at: Optional[datetime]
     created_at: datetime
     updated_at: datetime
     created_by: Optional[UUID]
     updated_by: Optional[UUID]
-
-    class Config:
-        from_attributes = True
 
 
 class UserLogin(BaseModel):
     email: str = Field(..., max_length=255)
     password: str = Field(..., max_length=255)
     tenant_id: Optional[UUID] = None
-
-
-class TenantOption(BaseModel):
-    tenant_id: UUID
-    name: str
-    slug: str
-
 
 
 class Token(BaseModel):

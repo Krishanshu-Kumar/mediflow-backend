@@ -71,10 +71,10 @@ def update_user(
             detail=messages.USER_NOT_FOUND,
         )
 
-    # If role is updated, verify the new role exists
+    # If role is updated, verify the new role exists in the user's tenant
     if user_update.role_id is not None:
         role = role_crud.get_role_by_id(db, role_id=user_update.role_id)
-        if not role:
+        if not role or role.tenant_id != user.tenant_id:
             raise HTTPException(
                 status_code=status_codes.HTTP_404_NOT_FOUND,
                 detail=messages.ROLE_NOT_FOUND,

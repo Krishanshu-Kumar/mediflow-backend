@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 
 from app.core.database import get_db
 from app.core import status_codes, messages
-from app.core.dependencies import get_current_active_user
+from app.core.dependencies import get_current_active_user, get_current_super_admin
 from app.core.security import create_access_token, verify_password
 from app.crud.base import commit_refresh
 from app.crud import auth_users_crud, tenant_crud, role_crud
@@ -28,11 +28,12 @@ router = APIRouter(
 @router.post("/register", response_model=UserResponse, status_code=status_codes.HTTP_201_CREATED)
 def register_user(
     user_in: UserCreate,
+    current_user: AuthUser = Depends(get_current_super_admin),
     db: Session = Depends(get_db),
 ):
     """
-    Register a new user. Verifies that the tenant and role exist,
-    and that the email is unique within the tenant.
+    Create a user (Super Admin only). Verifies that the tenant exists, the role
+    belongs to that tenant, and the email is unique within the tenant.
     """
     # 1. Verify tenant exists
     tenant = tenant_crud.get_tenant_by_id(db, tenant_id=user_in.tenant_id)
@@ -42,9 +43,9 @@ def register_user(
             detail=messages.TENANT_NOT_FOUND,
         )
 
-    # 2. Verify role exists
+    # 2. Verify role exists in this tenant
     role = role_crud.get_role_by_id(db, role_id=user_in.role_id)
-    if not role:
+    if not role or role.tenant_id != user_in.tenant_id:
         raise HTTPException(
             status_code=status_codes.HTTP_404_NOT_FOUND,
             detail=messages.ROLE_NOT_FOUND,
@@ -60,7 +61,7 @@ def register_user(
             detail=messages.EMAIL_ALREADY_EXISTS,
         )
 
-    return auth_users_crud.create_user(db, user=user_in)
+    return auth_users_crud.create_user(db, user=user_in, created_by=current_user.id)
 
 
 @router.post("/login", response_model=Token)
@@ -161,7 +162,7 @@ def login_for_access_token_form(
 
     if not tenant_id:
         # Resolve tenant_id from email
-        users = db.query(AuthUser).filter(AuthUser.email == email).all()
+        users = db.query(AuthUser).filter(AuthUser.email == email.lower()).all()
         if not users:
             raise HTTPException(
                 status_code=status_codes.HTTP_401_UNAUTHORIZED,

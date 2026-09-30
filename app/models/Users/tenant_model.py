@@ -5,11 +5,11 @@ from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
-from app.models.base_model import TimestampMixin
+from app.models.base_model import AuditMixin
 from app.models.Settings.master_codes import MasterCode
 
 
-class Tenant(Base, TimestampMixin):
+class Tenant(Base, AuditMixin):
     """
     An organization (hospital, clinic) using MediFlow. Root of all tenant data.
     """

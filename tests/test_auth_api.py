@@ -85,10 +85,8 @@ def test_auth_and_user_flow(client, db):
 
     db_role = Role(
         id=role_id,
-        designation_code=100,
-        designation_group_code=10,
+        tenant_id=tenant_id,
         name="Clinician",
-        display_name="Medical Clinician",
     )
     db.add(db_role)
     db.commit()
