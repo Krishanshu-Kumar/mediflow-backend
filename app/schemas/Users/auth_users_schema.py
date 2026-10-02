@@ -62,9 +62,9 @@ class UserResponse(BaseModel):
 
 
 class UserLogin(BaseModel):
+    tenant_slug: str = Field(..., min_length=1, max_length=100)
     email: str = Field(..., max_length=255)
     password: str = Field(..., max_length=255)
-    tenant_id: Optional[UUID] = None
 
 
 class Token(BaseModel):

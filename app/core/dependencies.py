@@ -16,11 +16,7 @@ from app.models.Users.auth_users_model import AuthUser
 from app.schemas.Users.auth_users_schema import TokenPayload
 
 
-# OAuth2 scheme for extracting Bearer token
-# reusable_oauth2 = OAuth2PasswordBearer(
-#     tokenUrl="/auth/login-form"  # Exposed for Swagger interactive UI login
-# )
-
+# Extracts the Bearer token from the Authorization header
 reusable_oauth2 = HTTPBearer()
 
 

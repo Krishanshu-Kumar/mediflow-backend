@@ -1,12 +1,11 @@
 from sqlalchemy.orm import Session
-from sqlalchemy.sql import func
 from typing import Optional, List
 from uuid import UUID
 
 from app.crud.base import apply_updates, commit_refresh, schema_to_dict
 from app.models.Users.auth_users_model import AuthUser
 from app.schemas.Users.auth_users_schema import UserCreate, UserUpdate
-from app.core.security import get_password_hash, verify_password
+from app.core.security import get_password_hash
 
 
 def get_user_by_id(db: Session, user_id: UUID) -> Optional[AuthUser]:
@@ -30,21 +29,6 @@ def get_user_by_email_and_tenant(
         .filter(AuthUser.email == email.lower(), AuthUser.tenant_id == tenant_id)
         .first()
     )
-
-
-def get_users_by_email(
-    db: Session,
-    email: str,
-    active_only: bool = True,
-) -> List[AuthUser]:
-    """
-    Retrieve all user accounts matching an email across tenants.
-    """
-    query = db.query(AuthUser).filter(AuthUser.email == email.lower())
-    if active_only:
-        query = query.filter(AuthUser.is_active == True)
-    return query.all()
-
 
 
 def create_user(
@@ -145,23 +129,3 @@ def activate_user(
     Reactivate a deactivated user.
     """
     return _set_user_active_status(db, user_id, True, updated_by)
-
-
-def authenticate_user(
-    db: Session,
-    email: str,
-    tenant_id: UUID,
-    password: str,
-) -> Optional[AuthUser]:
-    """
-    Authenticate a user by email, tenant_id, and password.
-    Updates last_login_at on success.
-    """
-    db_user = get_user_by_email_and_tenant(db, email=email, tenant_id=tenant_id)
-    if not db_user:
-        return None
-    if not verify_password(password, db_user.hashed_password):
-        return None
-
-    db_user.last_login_at = func.now()
-    return commit_refresh(db, db_user)

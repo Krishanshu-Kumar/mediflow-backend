@@ -5,15 +5,54 @@ from typing import List
 
 from app.core.database import get_db
 from app.core import status_codes, messages
-from app.core.dependencies import get_current_active_user
-from app.crud import auth_users_crud, role_crud
+from app.core.dependencies import get_current_active_user, get_current_super_admin
+from app.crud import auth_users_crud, role_crud, tenant_crud
 from app.models.Users.auth_users_model import AuthUser
-from app.schemas.Users.auth_users_schema import UserUpdate, UserResponse
+from app.schemas.Users.auth_users_schema import UserCreate, UserUpdate, UserResponse
 
 router = APIRouter(
     prefix="/users",
     tags=["Users"],
 )
+
+
+@router.post("/", response_model=UserResponse, status_code=status_codes.HTTP_201_CREATED)
+def create_user(
+    user_in: UserCreate,
+    current_user: AuthUser = Depends(get_current_super_admin),
+    db: Session = Depends(get_db),
+):
+    """
+    Create a user (Super Admin only). Verifies that the tenant exists, the role
+    belongs to that tenant, and the email is unique within the tenant.
+    """
+    # 1. Verify tenant exists
+    tenant = tenant_crud.get_tenant_by_id(db, tenant_id=user_in.tenant_id)
+    if not tenant:
+        raise HTTPException(
+            status_code=status_codes.HTTP_404_NOT_FOUND,
+            detail=messages.TENANT_NOT_FOUND,
+        )
+
+    # 2. Verify role exists in this tenant
+    role = role_crud.get_role_by_id(db, role_id=user_in.role_id)
+    if not role or role.tenant_id != user_in.tenant_id:
+        raise HTTPException(
+            status_code=status_codes.HTTP_404_NOT_FOUND,
+            detail=messages.ROLE_NOT_FOUND,
+        )
+
+    # 3. Verify email is unique in the tenant
+    db_user = auth_users_crud.get_user_by_email_and_tenant(
+        db, email=user_in.email, tenant_id=user_in.tenant_id
+    )
+    if db_user:
+        raise HTTPException(
+            status_code=status_codes.HTTP_400_BAD_REQUEST,
+            detail=messages.EMAIL_ALREADY_EXISTS,
+        )
+
+    return auth_users_crud.create_user(db, user=user_in, created_by=current_user.id)
 
 
 @router.get("/", response_model=List[UserResponse])

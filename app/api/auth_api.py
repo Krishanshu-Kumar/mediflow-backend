@@ -1,19 +1,16 @@
 from fastapi import APIRouter, Depends, HTTPException
-from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from uuid import UUID
-from typing import List, Optional
 from datetime import datetime, timezone
 
 from app.core.database import get_db
 from app.core import status_codes, messages
-from app.core.dependencies import get_current_active_user, get_current_super_admin
+from app.core.dependencies import get_current_active_user
 from app.core.security import create_access_token, verify_password
 from app.crud.base import commit_refresh
-from app.crud import auth_users_crud, tenant_crud, role_crud
+from app.crud import auth_users_crud, tenant_crud
 from app.models.Users.auth_users_model import AuthUser
 from app.schemas.Users.auth_users_schema import (
-    UserCreate,
     UserResponse,
     UserLogin,
     Token,
@@ -25,172 +22,45 @@ router = APIRouter(
 )
 
 
-@router.post("/register", response_model=UserResponse, status_code=status_codes.HTTP_201_CREATED)
-def register_user(
-    user_in: UserCreate,
-    current_user: AuthUser = Depends(get_current_super_admin),
-    db: Session = Depends(get_db),
-):
-    """
-    Create a user (Super Admin only). Verifies that the tenant exists, the role
-    belongs to that tenant, and the email is unique within the tenant.
-    """
-    # 1. Verify tenant exists
-    tenant = tenant_crud.get_tenant_by_id(db, tenant_id=user_in.tenant_id)
-    if not tenant:
-        raise HTTPException(
-            status_code=status_codes.HTTP_404_NOT_FOUND,
-            detail=messages.TENANT_NOT_FOUND,
-        )
-
-    # 2. Verify role exists in this tenant
-    role = role_crud.get_role_by_id(db, role_id=user_in.role_id)
-    if not role or role.tenant_id != user_in.tenant_id:
-        raise HTTPException(
-            status_code=status_codes.HTTP_404_NOT_FOUND,
-            detail=messages.ROLE_NOT_FOUND,
-        )
-
-    # 3. Verify email is unique in the tenant
-    db_user = auth_users_crud.get_user_by_email_and_tenant(
-        db, email=user_in.email, tenant_id=user_in.tenant_id
-    )
-    if db_user:
-        raise HTTPException(
-            status_code=status_codes.HTTP_400_BAD_REQUEST,
-            detail=messages.EMAIL_ALREADY_EXISTS,
-        )
-
-    return auth_users_crud.create_user(db, user=user_in, created_by=current_user.id)
-
-
 @router.post("/login", response_model=Token)
 def login_for_access_token(
     login_data: UserLogin,
     db: Session = Depends(get_db),
 ):
     """
-    Authenticate a user via JSON payload and return an access token.
-    If tenant_id is provided, authenticates against that tenant.
-    If tenant_id is omitted, auto-resolves tenant from email.
+    Log in with hospital slug + email + password and return an access token.
+    A wrong slug, email or password all give the same error, so nobody can
+    use this endpoint to find out which hospitals or emails exist.
     """
-    user: Optional[AuthUser] = None
-
-    if login_data.tenant_id:
-        user = auth_users_crud.authenticate_user(
-            db,
-            email=login_data.email,
-            tenant_id=login_data.tenant_id,
-            password=login_data.password,
-        )
-        if not user:
-            raise HTTPException(
-                status_code=status_codes.HTTP_401_UNAUTHORIZED,
-                detail=messages.INVALID_CREDENTIALS,
-            )
-        if not user.is_active:
-            raise HTTPException(
-                status_code=status_codes.HTTP_400_BAD_REQUEST,
-                detail=messages.INACTIVE_USER,
-            )
-    else:
-        # Auto-resolve tenant_id from email
-        users = auth_users_crud.get_users_by_email(db, email=login_data.email, active_only=True)
-        valid_users = [
-            u for u in users
-            if u.hashed_password and verify_password(login_data.password, str(u.hashed_password))
-        ]
-
-        if not valid_users:
-            raise HTTPException(
-                status_code=status_codes.HTTP_401_UNAUTHORIZED,
-                detail=messages.INVALID_CREDENTIALS,
-            )
-
-        if len(valid_users) > 1:
-            tenant_options = []
-            for u in valid_users:
-                t = tenant_crud.get_tenant_by_id(db, UUID(str(u.tenant_id)))
-                if t:
-                    tenant_options.append({"tenant_id": str(t.id), "name": t.name, "slug": t.slug})
-            raise HTTPException(
-                status_code=status_codes.HTTP_400_BAD_REQUEST,
-                detail={
-                    "message": "Email exists in multiple tenants. Please specify tenant_id.",
-                    "available_tenants": tenant_options,
-                },
-            )
-
-        user = valid_users[0]
-        user.last_login_at = datetime.now(timezone.utc)
-        commit_refresh(db, user)
-
-    if not user:
-        raise HTTPException(
-            status_code=status_codes.HTTP_401_UNAUTHORIZED,
-            detail=messages.INVALID_CREDENTIALS,
-        )
-
-    access_token = create_access_token(subject=UUID(str(user.id)))
-    return {"access_token": access_token, "token_type": "bearer"}
-
-
-@router.post("/login-form", response_model=Token)
-def login_for_access_token_form(
-    form_data: OAuth2PasswordRequestForm = Depends(),
-    db: Session = Depends(get_db),
-):
-    """
-    OAuth2-compatible token login (form-data).
-    Expects username as 'email' or 'tenant_id|email'.
-    If just 'email' is provided, it tries to auto-detect the tenant. If the email
-    exists in multiple tenants, it raises an error.
-    """
-    username = form_data.username
-    password = form_data.password
-
-    tenant_id: Optional[UUID] = None
-    email = username
-
-    if "|" in username:
-        parts = username.split("|", 1)
-        try:
-            tenant_id = UUID(parts[0])
-            email = parts[1]
-        except ValueError:
-            pass
-
-    if not tenant_id:
-        # Resolve tenant_id from email
-        users = db.query(AuthUser).filter(AuthUser.email == email.lower()).all()
-        if not users:
-            raise HTTPException(
-                status_code=status_codes.HTTP_401_UNAUTHORIZED,
-                detail=messages.INVALID_CREDENTIALS,
-            )
-        if len(users) > 1:
-            raise HTTPException(
-                status_code=status_codes.HTTP_400_BAD_REQUEST,
-                detail="Email exists in multiple tenants. Please use format 'tenant_id|email' in username.",
-            )
-        tenant_id = UUID(str(users[0].tenant_id))
-
-    user = auth_users_crud.authenticate_user(
-        db,
-        email=email,
-        tenant_id=tenant_id,
-        password=password,
+    invalid_credentials = HTTPException(
+        status_code=status_codes.HTTP_401_UNAUTHORIZED,
+        detail=messages.INVALID_CREDENTIALS,
     )
-    if not user:
+
+    tenant = tenant_crud.get_tenant_by_slug(db, slug=login_data.tenant_slug.strip().lower())
+    if not tenant:
+        raise invalid_credentials
+
+    user = auth_users_crud.get_user_by_email_and_tenant(
+        db, email=login_data.email, tenant_id=UUID(str(tenant.id))
+    )
+    if not user or not verify_password(login_data.password, str(user.hashed_password)):
+        raise invalid_credentials
+
+    # Only tell the caller about inactive accounts after the password was right
+    if not tenant.is_active:
         raise HTTPException(
-            status_code=status_codes.HTTP_401_UNAUTHORIZED,
-            detail=messages.INVALID_CREDENTIALS,
+            status_code=status_codes.HTTP_403_FORBIDDEN,
+            detail=messages.INACTIVE_TENANT,
         )
     if not user.is_active:
         raise HTTPException(
             status_code=status_codes.HTTP_400_BAD_REQUEST,
             detail=messages.INACTIVE_USER,
         )
+
+    user.last_login_at = datetime.now(timezone.utc)
+    commit_refresh(db, user)
 
     access_token = create_access_token(subject=UUID(str(user.id)))
     return {"access_token": access_token, "token_type": "bearer"}
