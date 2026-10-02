@@ -12,6 +12,9 @@ class Settings(BaseSettings):
     AI_BASE_URL: str = "http://localhost:11434/v1"
     DEBUG: bool = False
 
+    # Frontend addresses the browser may call this API from (JSON list in .env)
+    CORS_ORIGINS: list[str] = ["http://localhost:5173", "http://localhost:3000"]
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

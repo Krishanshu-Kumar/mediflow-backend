@@ -3,11 +3,13 @@ import uuid
 from datetime import datetime, timezone
 
 from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from sqlalchemy.exc import IntegrityError
 
+from app.core.config import settings
 from app.api import tenant_api
 from app.api import role_api
 from app.api.Settings import master_codes as master_code_api
@@ -27,6 +29,14 @@ app = FastAPI(
     title="MediFlow API",
     description="Clinical Workflow Intelligence Platform",
     version="1.0.0"
+)
+
+# Lets the browser frontend call this API (see CORS_ORIGINS in config.py)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.CORS_ORIGINS,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 
