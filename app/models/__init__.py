@@ -6,5 +6,6 @@ from app.models.Users.tenant_model import Tenant
 from app.models.Users.role_model import Role
 from app.models.Users.auth_users_model import AuthUser
 from app.models.Users.permission_model import Permission
+from app.models.Users.role_permission_model import RolePermission
 
-__all__ = ["MasterCode", "Tenant", "Role", "AuthUser", "Permission"]
+__all__ = ["MasterCode", "Tenant", "Role", "AuthUser", "Permission", "RolePermission"]

@@ -12,6 +12,7 @@ from sqlalchemy.exc import IntegrityError
 from app.core.config import settings
 from app.api import tenant_api
 from app.api import role_api
+from app.api import permission_api
 from app.api.Settings import master_codes as master_code_api
 from app.api import auth_api
 from app.api import user_api
@@ -122,6 +123,7 @@ async def global_exception_handler(request: Request, exc: Exception):
 # ---------------------------------------------------------------------------
 app.include_router(tenant_api.router)
 app.include_router(role_api.router)
+app.include_router(permission_api.router)
 app.include_router(master_code_api.router)
 app.include_router(auth_api.router)
 app.include_router(user_api.router)

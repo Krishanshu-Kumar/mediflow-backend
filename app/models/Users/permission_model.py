@@ -7,8 +7,8 @@ from app.core.database import Base
 class Permission(Base):
     """
     One thing a user may do ("patients.read"). Endpoints check for these codes.
-    Rows are managed by migrations, not by the API: a permission only means
-    something once code checks for it, so both ship together.
+    Rows are managed by Super Admin through the API. A permission only means
+    something once endpoint code checks for it, so add the row and the check together.
     """
     __tablename__ = "tb_gl_permissions"
 

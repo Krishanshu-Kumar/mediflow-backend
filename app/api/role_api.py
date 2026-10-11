@@ -7,8 +7,9 @@ from app.core.constants import SUPER_ADMIN_ROLE_ID
 from app.core.database import get_db
 from app.core import messages, status_codes
 from app.core.dependencies import get_current_super_admin
-from app.crud import role_crud, tenant_crud
+from app.crud import permission_crud, role_crud, tenant_crud
 from app.models.Users.role_model import Role
+from app.schemas.Users.permission_schema import PermissionResponse
 from app.schemas.Users.role_schema import RoleCreate, RoleUpdate, RoleResponse
 
 # All routes in this router require Super Admin privileges.
@@ -84,6 +85,15 @@ def get_role(
     db: Session = Depends(get_db),
 ):
     return _get_role_or_404(db, role_id)
+
+
+@router.get("/{role_id}/permissions", response_model=List[PermissionResponse])
+def get_role_permissions(
+    role_id: UUID,
+    db: Session = Depends(get_db),
+):
+    _get_role_or_404(db, role_id)
+    return permission_crud.get_permissions_for_role(db, role_id)
 
 
 @router.put("/{role_id}", response_model=RoleResponse)
