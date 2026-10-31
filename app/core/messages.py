@@ -15,3 +15,7 @@ SUPER_ADMIN_ROLE_PROTECTED = "The Super Admin role cannot be modified or deactiv
 PERMISSION_NOT_FOUND = "Permission not found"
 PERMISSION_CODE_EXISTS = "A permission with this code already exists"
 PERMISSION_IN_USE = "This permission is assigned to roles and cannot be deleted"
+PERMISSION_REQUIRED = "You do not have permission to perform this action"
+PERMISSION_NOT_GRANTABLE = "You can only grant tenant-level permissions that you hold yourself"
+ROLE_HAS_ACTIVE_USERS = "This role still has active users and cannot be deactivated"
+OWN_ROLE_PROTECTED = "You cannot deactivate or change the permissions of your own role"

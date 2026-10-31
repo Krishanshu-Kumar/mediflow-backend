@@ -1,13 +1,19 @@
 from datetime import datetime
-from typing import Optional
+from typing import List, Optional
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
 
 
 class RoleCreate(BaseModel):
-    tenant_id: UUID
+    """Super Admin must give tenant_id; for a hospital user it is their own tenant."""
+    tenant_id: Optional[UUID] = None
     name: str = Field(..., min_length=1, max_length=100)
+
+
+class RolePermissionsUpdate(BaseModel):
+    """The complete set of permission codes the role should hold."""
+    permission_codes: List[str]
 
 
 class RoleUpdate(BaseModel):

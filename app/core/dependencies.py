@@ -11,7 +11,7 @@ from app.core.config import settings
 from app.core.constants import SUPER_ADMIN_ROLE_ID, SYSTEM_TENANT_ID
 from app.core.database import get_db
 from app.core import status_codes, messages
-from app.crud import auth_users_crud
+from app.crud import auth_users_crud, permission_crud
 from app.models.Users.auth_users_model import AuthUser
 from app.schemas.Users.auth_users_schema import TokenPayload
 
@@ -76,6 +76,10 @@ def get_current_active_user(
     return current_user
 
 
+def is_super_admin(user: AuthUser) -> bool:
+    return user.tenant_id == SYSTEM_TENANT_ID and user.role_id == SUPER_ADMIN_ROLE_ID
+
+
 def get_current_super_admin(
     current_user: AuthUser = Depends(get_current_active_user),
 ) -> AuthUser:
@@ -83,9 +87,34 @@ def get_current_super_admin(
     Validate that the current active user is a platform Super Admin:
     a member of the MediFlow tenant holding the Super Admin role.
     """
-    if current_user.tenant_id != SYSTEM_TENANT_ID or current_user.role_id != SUPER_ADMIN_ROLE_ID:
+    if not is_super_admin(current_user):
         raise HTTPException(
             status_code=status_codes.HTTP_403_FORBIDDEN,
             detail=messages.SUPER_ADMIN_REQUIRED,
         )
     return current_user
+
+
+def require_permission(code: str):
+    """
+    Build a dependency that passes for a Super Admin, or for an active user
+    whose role holds the permission `code`. Returns the current user.
+
+    Create it once at module level and reuse that object, so FastAPI can cache
+    it within a request.
+    """
+    def checker(
+        current_user: AuthUser = Depends(get_current_active_user),
+        db: Session = Depends(get_db),
+    ) -> AuthUser:
+        if is_super_admin(current_user):
+            return current_user
+        held = permission_crud.get_permissions_for_role(db, current_user.role_id)
+        if code not in {p.code for p in held}:
+            raise HTTPException(
+                status_code=status_codes.HTTP_403_FORBIDDEN,
+                detail=messages.PERMISSION_REQUIRED,
+            )
+        return current_user
+
+    return checker

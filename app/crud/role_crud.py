@@ -6,6 +6,7 @@ from app.crud.base import (
     update_fields,
     update_instance,
 )
+from app.models.Users.auth_users_model import AuthUser
 from app.models.Users.role_model import Role
 from app.schemas.Users.role_schema import RoleCreate, RoleUpdate
 from uuid import UUID
@@ -37,6 +38,12 @@ def get_roles(
     if active_only:
         query = query.where(Role.is_active)
     return list(db.scalars(query.offset(skip).limit(limit)))
+
+
+def has_active_users(db: Session, role_id: UUID) -> bool:
+    return db.scalar(
+        select(AuthUser.id).where(AuthUser.role_id == role_id, AuthUser.is_active).limit(1)
+    ) is not None
 
 
 def update_role(

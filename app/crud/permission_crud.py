@@ -1,4 +1,4 @@
-from sqlalchemy import select
+from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 from app.crud.base import apply_updates, commit_refresh, schema_to_dict
 from app.models.Users.permission_model import Permission
@@ -23,6 +23,15 @@ def get_permissions_for_role(db: Session, role_id: UUID) -> List[Permission]:
         .order_by(Permission.code)
     )
     return list(db.scalars(query))
+
+
+def set_role_permissions(db: Session, role_id: UUID, codes: List[str]) -> List[Permission]:
+    """Replace the role's permissions with exactly `codes`."""
+    db.execute(delete(RolePermission).where(RolePermission.role_id == role_id))
+    for code in sorted(set(codes)):
+        db.add(RolePermission(role_id=role_id, permission_code=code))
+    db.commit()
+    return get_permissions_for_role(db, role_id)
 
 
 def get_permission_by_code(db: Session, code: str) -> Optional[Permission]:
