@@ -12,6 +12,8 @@ class MasterCodeCategory(IntEnum):
     Add a category here only when a feature starts using it.
     """
     PLAN = 1000
+    PAYMENT_STATUS = 2000
+    GENDER = 3000
 
 
 class MasterCode(Base):
