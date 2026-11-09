@@ -2,7 +2,7 @@ import uuid
 
 from sqlalchemy import Boolean, CheckConstraint, ForeignKey, String, UniqueConstraint, text
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
 from app.models.base_model import AuditMixin
@@ -26,6 +26,8 @@ class Role(Base, AuditMixin):
         UUID(as_uuid=True),
         ForeignKey("tb_gl_tenants.id"),
     )
+
+    tenant: Mapped["Tenant"] = relationship(lazy="joined")  # noqa: F821
 
     name: Mapped[str] = mapped_column(String(100))
 

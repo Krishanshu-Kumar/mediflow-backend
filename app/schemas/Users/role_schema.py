@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import List, Optional
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import AliasPath, BaseModel, ConfigDict, Field
 
 
 class RoleCreate(BaseModel):
@@ -29,6 +29,7 @@ class RoleResponse(BaseModel):
 
     id: UUID
     tenant_id: UUID
+    tenant_name: str = Field(validation_alias=AliasPath("tenant", "name"))
     name: str
     is_active: bool
     created_at: datetime
