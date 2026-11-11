@@ -38,14 +38,26 @@ def get_permission_by_code(db: Session, code: str) -> Optional[Permission]:
     return db.get(Permission, code)
 
 
-def create_permission(db: Session, permission: PermissionCreate) -> Permission:
-    instance = Permission(**schema_to_dict(permission))
+def create_permission(
+    db: Session, permission: PermissionCreate, created_by: Optional[UUID] = None
+) -> Permission:
+    data = schema_to_dict(permission)
+    data["resource"], data["action"] = permission.code.split(".")
+    data["created_by"] = created_by
+    instance = Permission(**data)
     db.add(instance)
     return commit_refresh(db, instance)
 
 
-def update_permission(db: Session, permission: Permission, update: PermissionUpdate) -> Permission:
-    apply_updates(permission, schema_to_dict(update, exclude_unset=True))
+def update_permission(
+    db: Session,
+    permission: Permission,
+    update: PermissionUpdate,
+    updated_by: Optional[UUID] = None,
+) -> Permission:
+    updates = schema_to_dict(update, exclude_unset=True)
+    updates["updated_by"] = updated_by
+    apply_updates(permission, updates)
     return commit_refresh(db, permission)
 
 
