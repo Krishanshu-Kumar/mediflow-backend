@@ -1,6 +1,6 @@
 from typing import Optional
 
-from sqlalchemy import Boolean, CheckConstraint, String
+from sqlalchemy import CheckConstraint, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
@@ -29,8 +29,6 @@ class Permission(Base, AuditMixin):
 
     # 'platform' = MediFlow staff only, 'tenant' = a hospital admin may hand it out
     scope: Mapped[str] = mapped_column(String(20))
-
-    is_active: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
 
     __table_args__ = (
         CheckConstraint("code ~ '^[a-z0-9_]+\\.[a-z0-9_]+$'", name="code_format"),

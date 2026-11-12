@@ -21,7 +21,6 @@ class PermissionUpdate(BaseModel):
     description: Optional[str] = Field(None, min_length=1, max_length=255)
     display_name: Optional[str] = Field(None, min_length=1, max_length=100)
     scope: Optional[Scope] = None
-    is_active: Optional[bool] = None
 
 
 class PermissionResponse(BaseModel):
@@ -33,7 +32,6 @@ class PermissionResponse(BaseModel):
     display_name: Optional[str] = None
     description: str
     scope: Scope
-    is_active: bool
     created_at: datetime
     updated_at: datetime
     created_by: Optional[UUID] = None

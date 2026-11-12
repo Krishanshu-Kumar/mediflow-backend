@@ -72,7 +72,7 @@ def update_permission(
     db: Session = Depends(get_db),
 ):
     """
-    Change a permission's description, display name, scope or active flag.
+    Change a permission's description, display name or scope.
     The code cannot be changed.
     """
     permission = _get_permission_or_404(db, code)
