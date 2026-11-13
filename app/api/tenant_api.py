@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from uuid import UUID
-from typing import List, Optional
+from typing import List
 
 from app.core.constants import SYSTEM_TENANT_ID
 from app.core.database import get_db
@@ -29,9 +29,8 @@ def _ensure_valid_plan(db: Session, plan_code: int) -> None:
         )
 
 
-def _ensure_slug_available(db: Session, slug: str, tenant_id: Optional[UUID] = None) -> None:
-    existing = tenant_crud.get_tenant_by_slug(db, slug)
-    if existing and existing.id != tenant_id:
+def _ensure_slug_available(db: Session, slug: str) -> None:
+    if tenant_crud.get_tenant_by_slug(db, slug):
         raise HTTPException(
             status_code=status_codes.HTTP_409_CONFLICT,
             detail=messages.TENANT_SLUG_EXISTS,
@@ -93,12 +92,11 @@ def update_tenant(
 ):
     """
     Partially update a tenant. The system tenant cannot be modified.
+    The slug cannot be changed after creation.
     """
     _ensure_not_system_tenant(tenant_id)
     if tenant_update.plan_code is not None:
         _ensure_valid_plan(db, tenant_update.plan_code)
-    if tenant_update.slug is not None:
-        _ensure_slug_available(db, tenant_update.slug, tenant_id)
 
     tenant = tenant_crud.update_tenant(db, tenant_id, tenant_update)
     if not tenant:

@@ -10,6 +10,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from sqlalchemy.exc import IntegrityError
 
 from app.core.config import settings
+from app.core.exceptions import get_unique_violation_message
 from app.api import tenant_api
 from app.api import role_api
 from app.api import permission_api
@@ -78,6 +79,16 @@ def build_error_response(request: Request, status_code: int, message, log_level:
 
 @app.exception_handler(IntegrityError)
 async def integrity_error_handler(request: Request, exc: IntegrityError):
+    # Known unique violations (e.g. a race past an API pre-check) -> 409 with a clear message
+    conflict_message = get_unique_violation_message(exc)
+    if conflict_message:
+        return build_error_response(
+            request,
+            status_code=409,
+            message=conflict_message,
+            log_level="warning",
+        )
+
     # Log the real DB error internally (with traceback), but don't leak it to the client
     logger.exception(f"IntegrityError on {request.method} {request.url.path}")
     return build_error_response(
