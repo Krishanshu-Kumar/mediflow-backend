@@ -11,7 +11,7 @@ from app.core.config import settings
 from app.core.constants import SUPER_ADMIN_ROLE_ID, SYSTEM_TENANT_ID
 from app.core.database import get_db
 from app.core import status_codes, messages
-from app.crud import auth_users_crud, permission_crud
+from app.crud import auth_users_crud, permission_crud, tenant_crud
 from app.models.Users.auth_users_model import AuthUser
 from app.schemas.Users.auth_users_schema import TokenPayload
 
@@ -64,10 +64,19 @@ def get_current_user(
 
 def get_current_active_user(
     current_user: AuthUser = Depends(get_current_user),
+    db: Session = Depends(get_db),
 ) -> AuthUser:
     """
-    Validate that the current user is active.
+    Validate that the current user is active and belongs to an active tenant.
+    The tenant is re-checked on every request, so deactivating a tenant cuts
+    off its users immediately instead of when their token expires.
     """
+    tenant = tenant_crud.get_tenant_by_id(db, current_user.tenant_id)
+    if not tenant or not tenant.is_active:
+        raise HTTPException(
+            status_code=status_codes.HTTP_403_FORBIDDEN,
+            detail=messages.INACTIVE_TENANT,
+        )
     if not current_user.is_active:
         raise HTTPException(
             status_code=status_codes.HTTP_400_BAD_REQUEST,
