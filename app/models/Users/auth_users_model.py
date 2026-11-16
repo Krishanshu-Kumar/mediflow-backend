@@ -14,7 +14,7 @@ from sqlalchemy import (
     text,
 )
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
 from app.models.base_model import AuditMixin
@@ -40,6 +40,16 @@ class AuthUser(Base, AuditMixin):
     )
     role_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True))
 
+    # Read-only join to the role, so responses can show its name. The DB-level
+    # link is the composite (tenant_id, role_id) FK below, hence the explicit join.
+    role: Mapped["Role"] = relationship(  # noqa: F821
+        "Role",
+        primaryjoin="AuthUser.role_id == Role.id",
+        foreign_keys=[role_id],
+        viewonly=True,
+        lazy="joined",
+    )
+
     # Always stored lowercase, so "A@x.com" and "a@x.com" are the same account
     email: Mapped[str] = mapped_column(String(255))
     hashed_password: Mapped[str] = mapped_column(Text)
@@ -47,6 +57,10 @@ class AuthUser(Base, AuditMixin):
 
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true")
     last_login_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+
+    @property
+    def role_name(self) -> str:
+        return self.role.name
 
     __table_args__ = (
         # The role must belong to the user's own tenant, not just exist

@@ -51,6 +51,7 @@ class UserResponse(BaseModel):
     id: UUID
     tenant_id: UUID
     role_id: UUID
+    role_name: str
     email: str
     full_name: str
     is_active: bool
