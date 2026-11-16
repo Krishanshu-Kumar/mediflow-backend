@@ -1,11 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from uuid import UUID
-from typing import List
+from typing import List, Literal, Optional
 
 from app.core.database import get_db
 from app.core import status_codes, messages
-from app.core.dependencies import get_current_active_user, get_current_super_admin
+from app.core.dependencies import get_current_active_user, get_current_super_admin, is_super_admin
 from app.crud import auth_users_crud, role_crud, tenant_crud
 from app.models.Users.auth_users_model import AuthUser
 from app.schemas.Users.auth_users_schema import UserCreate, UserUpdate, UserResponse
@@ -59,19 +59,35 @@ def create_user(
 def get_users(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=500),
-    active_only: bool = True,
+    status: Literal["active", "inactive", "all"] = Query("active", description="Filter users by status"),
+    tenant_id: Optional[UUID] = Query(None, description="Super Admin only: list another tenant's users"),
     current_user: AuthUser = Depends(get_current_active_user),
     db: Session = Depends(get_db),
 ):
     """
-    Get all users in the currently logged-in user's tenant with pagination.
+    Get users with pagination. Defaults to the logged-in user's tenant.
+    Only a Super Admin may pass tenant_id to list a different tenant's users.
     """
+    target_tenant_id = UUID(str(current_user.tenant_id))
+    if tenant_id is not None and tenant_id != target_tenant_id:
+        if not is_super_admin(current_user):
+            raise HTTPException(
+                status_code=status_codes.HTTP_403_FORBIDDEN,
+                detail=messages.SUPER_ADMIN_REQUIRED,
+            )
+        if not tenant_crud.get_tenant_by_id(db, tenant_id=tenant_id):
+            raise HTTPException(
+                status_code=status_codes.HTTP_404_NOT_FOUND,
+                detail=messages.TENANT_NOT_FOUND,
+            )
+        target_tenant_id = tenant_id
+
     return auth_users_crud.get_users(
         db,
-        tenant_id=UUID(str(current_user.tenant_id)),
+        tenant_id=target_tenant_id,
         skip=skip,
         limit=limit,
-        active_only=active_only,
+        status=status,
     )
 
 

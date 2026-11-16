@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from typing import Optional, List
+from typing import Literal, Optional, List
 from uuid import UUID
 
 from app.crud.base import apply_updates, commit_refresh, schema_to_dict
@@ -59,14 +59,17 @@ def get_users(
     tenant_id: UUID,
     skip: int = 0,
     limit: int = 100,
-    active_only: bool = True,
+    status: Literal["active", "inactive", "all"] = "active",
 ) -> List[AuthUser]:
     """
-    Get a list of users for a specific tenant with pagination.
+    Get a list of users for a specific tenant with pagination,
+    filtered by status ("active", "inactive" or "all").
     """
     query = db.query(AuthUser).filter(AuthUser.tenant_id == tenant_id)
-    if active_only:
-        query = query.filter(AuthUser.is_active == True)
+    if status == "active":
+        query = query.filter(AuthUser.is_active.is_(True))
+    elif status == "inactive":
+        query = query.filter(AuthUser.is_active.is_(False))
 
     return query.offset(skip).limit(limit).all()
 
