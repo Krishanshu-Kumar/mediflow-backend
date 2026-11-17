@@ -14,6 +14,7 @@ UNIQUE_CONSTRAINT_MESSAGES = {
     "uq_tb_gl_roles_tenant_id_name": messages.ROLE_NAME_EXISTS,
     "uq_tb_auth_users_tenant_id_email": messages.EMAIL_ALREADY_EXISTS,
     "pk_tb_gl_permissions": messages.PERMISSION_CODE_EXISTS,
+    "uq_tb_gl_financial_years_label": messages.FINANCIAL_YEAR_LABEL_EXISTS,
 }
 
 
