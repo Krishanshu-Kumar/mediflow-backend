@@ -2,7 +2,7 @@ from datetime import date
 from typing import Optional
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, computed_field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, computed_field, field_validator, model_validator
 
 from app.schemas.base import NonNullableUpdateSchema
 
@@ -13,6 +13,15 @@ class FinancialYearCreate(BaseModel):
     label: str = Field(..., max_length=20, pattern=LABEL_PATTERN, examples=["2026-27"])
     start_date: date
     end_date: date
+
+    @field_validator("label")
+    @classmethod
+    def check_label_years(cls, value: str) -> str:
+        # 2026-27: the part after the dash must be the next year (2099-00 is valid)
+        start_year = int(value[:4])
+        if int(value[5:]) != (start_year + 1) % 100:
+            raise ValueError(f"label must be a consecutive year pair, e.g. {start_year}-{(start_year + 1) % 100:02d}")
+        return value
 
     @model_validator(mode="after")
     def check_dates(self):

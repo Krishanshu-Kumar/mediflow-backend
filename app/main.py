@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
@@ -114,7 +115,9 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
     return build_error_response(
         request,
         status_code=422,
-        message=exc.errors(),
+        # Custom validators put the raw ValueError in each error's ctx, which
+        # JSON can't serialize; convert exceptions to their message text
+        message=jsonable_encoder(exc.errors(), custom_encoder={Exception: str}),
         log_level="warning",
     )
 
