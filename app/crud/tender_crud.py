@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.crud.base import apply_updates, commit_refresh, get_by_id, schema_to_dict
 from app.models.Settings.financial_year_model import FinancialYear
-from app.models.Tenders.tender_model import Tender, TenderItem, TenderStatus
+from app.models.Tenders.tender_model import Tender
 from app.schemas.Tenders.tender_schema import TenderCreate, TenderUpdate
 
 REFERENCE_UNIQUE_CONSTRAINT = "uq_tb_tn_tenders_tenant_id_reference_no"
@@ -16,12 +16,9 @@ REFERENCE_UNIQUE_CONSTRAINT = "uq_tb_tn_tenders_tenant_id_reference_no"
 MAX_REFERENCE_ATTEMPTS = 5
 
 
-def _build_items(items: List[dict]) -> List[TenderItem]:
-    return [TenderItem(line_no=index, **item) for index, item in enumerate(items, start=1)]
-
-
 def _next_reference_no(db: Session, tenant_id: UUID, financial_year: FinancialYear) -> str:
-    # Soft-deleted tenders stay in the table, so their numbers are never reused
+    # Numbered per tenant and financial year. Soft-deleted tenders stay in the
+    # table, so their numbers are never reused.
     count = db.scalar(
         select(func.count())
         .select_from(Tender)
@@ -45,14 +42,12 @@ def create_tender(
     created_by: Optional[UUID] = None,
 ) -> Tender:
     data = schema_to_dict(tender_in)
-    items = data.pop("items")
 
     for attempt in range(1, MAX_REFERENCE_ATTEMPTS + 1):
         tender = Tender(
             **data,
             financial_year_id=financial_year.id,
             reference_no=_next_reference_no(db, tender_in.tenant_id, financial_year),
-            items=_build_items(items),
             created_by=created_by,
         )
         db.add(tender)
@@ -71,7 +66,6 @@ def get_tender_by_id(db: Session, tender_id: UUID) -> Optional[Tender]:
 def get_tenders(
     db: Session,
     tenant_id: Optional[UUID] = None,
-    status_code: Optional[int] = None,
     skip: int = 0,
     limit: int = 100,
     active_only: bool = True,
@@ -79,8 +73,6 @@ def get_tenders(
     query = select(Tender)
     if tenant_id is not None:
         query = query.where(Tender.tenant_id == tenant_id)
-    if status_code is not None:
-        query = query.where(Tender.status_code == status_code)
     if active_only:
         query = query.where(Tender.is_active)
     query = query.order_by(Tender.created_at.desc(), Tender.reference_no).offset(skip).limit(limit)
@@ -93,23 +85,7 @@ def update_tender(
     tender_update: TenderUpdate,
     updated_by: Optional[UUID] = None,
 ) -> Tender:
-    data = schema_to_dict(tender_update, exclude_unset=True)
-    items = data.pop("items", None)
-    apply_updates(tender, data)
-    if items is not None:
-        # Replaces the whole list; the old rows are deleted as orphans
-        tender.items = _build_items(items)
-    tender.updated_by = updated_by
-    return commit_refresh(db, tender)
-
-
-def set_tender_status(
-    db: Session,
-    tender: Tender,
-    status: TenderStatus,
-    updated_by: Optional[UUID] = None,
-) -> Tender:
-    tender.status_code = int(status)
+    apply_updates(tender, schema_to_dict(tender_update, exclude_unset=True))
     tender.updated_by = updated_by
     return commit_refresh(db, tender)
 

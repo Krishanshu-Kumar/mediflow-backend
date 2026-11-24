@@ -8,6 +8,6 @@ from app.models.Users.role_model import Role
 from app.models.Users.auth_users_model import AuthUser
 from app.models.Users.permission_model import Permission
 from app.models.Users.role_permission_model import RolePermission
-from app.models.Tenders.tender_model import Tender, TenderItem
+from app.models.Tenders.tender_model import Tender
 
-__all__ = ["MasterCode", "FinancialYear","Tenant", "Role", "AuthUser", "Permission", "RolePermission", "Tender", "TenderItem"]
+__all__ = ["MasterCode", "FinancialYear","Tenant", "Role", "AuthUser", "Permission", "RolePermission", "Tender"]
