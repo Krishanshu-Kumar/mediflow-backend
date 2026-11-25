@@ -130,12 +130,36 @@ def update_tender(
     return tender_crud.update_tender(db, tender, tender_update, updated_by=current_user.id)
 
 
-@router.delete("/{tender_id}", status_code=status_codes.HTTP_204_NO_CONTENT)
-def delete_tender(
+@router.patch("/{tender_id}/status", response_model=TenderResponse)
+def set_tender_status(
     tender_id: UUID,
+    status_code: int = Query(
+        ...,
+        description="Tender status code: 4001 draft, 4002 published, 4003 closed, 4004 cancelled",
+    ),
     db: Session = Depends(get_db),
     current_user: AuthUser = Depends(get_current_super_admin),
 ):
-    """Soft-delete a tender."""
+    """Change only the status of a tender."""
     tender = _get_tender_or_404(db, tender_id)
-    tender_crud.soft_delete_tender(db, tender, updated_by=current_user.id)
+    _ensure_valid_status(db, status_code)
+    return tender_crud.update_tender(
+        db, tender, TenderUpdate(status_code=status_code), updated_by=current_user.id
+    )
+
+
+@router.patch("/{tender_id}/activation", response_model=TenderResponse)
+def set_tender_activation(
+    tender_id: UUID,
+    is_active: bool = Query(..., description="Set active (true) or inactive (false)"),
+    db: Session = Depends(get_db),
+    current_user: AuthUser = Depends(get_current_super_admin),
+):
+    """Activate or deactivate a tender. Inactive tenders are hidden from the list by default."""
+    tender = tender_crud.get_tender_by_id(db, tender_id)
+    if not tender:
+        raise HTTPException(
+            status_code=status_codes.HTTP_404_NOT_FOUND,
+            detail=messages.TENDER_NOT_FOUND,
+        )
+    return tender_crud.set_tender_active_status(db, tender, is_active, updated_by=current_user.id)

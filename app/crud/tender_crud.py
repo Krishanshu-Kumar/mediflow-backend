@@ -90,11 +90,12 @@ def update_tender(
     return commit_refresh(db, tender)
 
 
-def soft_delete_tender(
+def set_tender_active_status(
     db: Session,
     tender: Tender,
+    is_active: bool,
     updated_by: Optional[UUID] = None,
 ) -> Tender:
-    tender.is_active = False
+    tender.is_active = is_active
     tender.updated_by = updated_by
     return commit_refresh(db, tender)
