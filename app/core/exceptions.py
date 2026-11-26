@@ -16,6 +16,7 @@ UNIQUE_CONSTRAINT_MESSAGES = {
     "pk_tb_gl_permissions": messages.PERMISSION_CODE_EXISTS,
     "uq_tb_gl_financial_years_label": messages.FINANCIAL_YEAR_LABEL_EXISTS,
     "uq_tb_tn_tenders_tenant_id_reference_no": messages.TENDER_REFERENCE_EXISTS,
+    "uq_tb_tn_tender_items_tender_id_item_no": messages.TENDER_ITEM_NUMBER_EXISTS,
 }
 
 

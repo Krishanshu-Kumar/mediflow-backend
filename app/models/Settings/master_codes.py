@@ -15,6 +15,7 @@ class MasterCodeCategory(IntEnum):
     PAYMENT_STATUS = 2000
     GENDER = 3000
     TENDER_STATUS = 4000
+    TENDER_ITEM_TYPE = 5000
 
 
 class MasterCode(Base):

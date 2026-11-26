@@ -20,6 +20,7 @@ from app.api.Settings import financial_years as financial_year_api
 from app.api import auth_api
 from app.api import user_api
 from app.api import tender_api
+from app.api import tender_item_api
 
 # ---------------------------------------------------------------------------
 # Logging setup
@@ -145,3 +146,4 @@ app.include_router(financial_year_api.router)
 app.include_router(auth_api.router)
 app.include_router(user_api.router)
 app.include_router(tender_api.router)
+app.include_router(tender_item_api.router)
